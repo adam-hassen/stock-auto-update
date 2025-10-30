@@ -10,38 +10,28 @@ import pandas as pd
 from datetime import datetime
 import yfinance as yf
 from tiingo import TiingoClient
-import json
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.service_account import Credentials as ServiceAccountCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 # ====================== CONFIGURATION ======================
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-CREDS_FILE = 'token.json'
-FOLDER_ID = '1LOk5epELmfSV0U_XnKPN_DWG5Vql3xGa'  # Ton ID Drive !
+SCOPES = ['https://www.googleapis.com/auth/drive']
+SERVICE_ACCOUNT_FILE = 'service_account.json'
+FOLDER_ID = '1LOk5epELmfSV0U_XnKPN_DWG5Vql3xGa'
 
-# Récupère la clé Tiingo depuis les variables d'environnement (GitHub Secrets)
+# Récupère la clé Tiingo depuis secrets
 TIINGO_API_KEY = os.getenv('TIINGO_API_KEY')
 if not TIINGO_API_KEY:
-    raise ValueError("TIINGO_API_KEY non trouvée ! Ajoute-la dans GitHub Secrets.")
+    raise ValueError("TIINGO_API_KEY non trouvée !")
 
-# ====================== GOOGLE DRIVE AUTH ======================
+# ====================== GOOGLE DRIVE AUTH (SERVICE ACCOUNT) ======================
 def authenticate_google_drive():
-    creds = None
-    if os.path.exists(CREDS_FILE):
-        creds = Credentials.from_authorized_user_file(CREDS_FILE, SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            if not os.path.exists('credentials.json'):
-                raise FileNotFoundError("credentials.json manquant ! Télécharge-le depuis Google Cloud.")
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open(CREDS_FILE, 'w') as token:
-            token.write(creds.to_json())
+    service_json = os.getenv('SERVICE_ACCOUNT_JSON')
+    if not service_json:
+        raise ValueError("SERVICE_ACCOUNT_JSON non trouvée !")
+    with open(SERVICE_ACCOUNT_FILE, 'w') as f:
+        f.write(service_json)
+    creds = ServiceAccountCredentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     return build('drive', 'v3', credentials=creds)
 
 # ====================== COLLECTE YFINANCE ======================
@@ -100,17 +90,14 @@ def collect_tiingo():
         except Exception as e:
             print(f"     Erreur prix {symbol}: {e}")
 
-        # News (CORRIGÉ)
+        # News (FIX : get_ticker_news)
         try:
-            news = client.list_news(tickers=[symbol], limit=5)
-            if news:
-                news_df = pd.DataFrame(news)
-                news_df['symbol'] = symbol
-                news_df['source'] = 'tiingo'
-                news_df.to_csv(f"{tiingo_path}/{symbol}_news.csv", index=False)
-                print(f"     News : {len(news_df)} articles")
-            else:
-                print(f"     Aucune news pour {symbol}")
+            news = client.get_ticker_news(symbol, limit=5)
+            news_df = pd.DataFrame(news)
+            news_df['symbol'] = symbol
+            news_df['source'] = 'tiingo'
+            news_df.to_csv(f"{tiingo_path}/{symbol}_news.csv", index=False)
+            print(f"     News : {len(news_df)} articles")
         except Exception as e:
             print(f"     Erreur news {symbol}: {e}")
 
@@ -132,7 +119,7 @@ def upload_to_drive(local_path):
             file_path = os.path.join(root, file)
             relative_path = os.path.relpath(file_path, local_path)
             file_metadata = {
-                'name': relative_path.replace(os.sep, '_'),  # Évite les dossiers imbriqués
+                'name': relative_path.replace(os.sep, '_'),
                 'parents': [FOLDER_ID]
             }
             media = MediaFileUpload(file_path)
@@ -147,12 +134,12 @@ if __name__ == "__main__":
     print("DÉBUT DU PIPELINE AUTOMATIQUE -", datetime.now().strftime("%Y-%m-%d %H:%M"))
 
     # 1. yfinance
-    yf_path = collect_yfinance()
+    collect_yfinance()
 
     # 2. Tiingo
-    tiingo_path = collect_tiingo()
+    collect_tiingo()
 
     # 3. Upload
     upload_to_drive("/tmp/stock_data")
 
-    print("PIPELINE TERMINÉ ! Données mises à jour dans Google Drive.")
+    print("PIPELINE TERMINÉ !")
