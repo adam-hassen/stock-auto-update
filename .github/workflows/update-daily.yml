@@ -1,16 +1,15 @@
-name: Mise à jour quotidienne des données boursières
+name: Mise à jour quotidienne des données
 
 on:
   schedule:
-    - cron: '0 18 * * *'  # Tous les jours à 18h UTC (20h en France)
-  workflow_dispatch:     # Tu peux lancer manuellement aussi
+    - cron: '0 18 * * 1-5'  # Jours ouvrés 18h UTC
+  workflow_dispatch:
 
 jobs:
-  update-data:
+  run-pipeline:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -19,10 +18,11 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install yfinance tiingo pandas plotly google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
+          pip install yfinance tiingo pandas google-auth google-auth-httplib2 google-api-python-client
 
       - name: Run pipeline
         env:
           TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
+          SERVICE_ACCOUNT_JSON: ${{ secrets.SERVICE_ACCOUNT_JSON }}
         run: |
           python stock_pipeline.py
