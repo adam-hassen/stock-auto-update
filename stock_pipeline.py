@@ -60,7 +60,7 @@ def collect_tiingo():
 def commit_and_push():
     print("Commit + Push sur GitHub...")
     subprocess.run(["git", "config", "--global", "adam.hassen@esprit.tn", "actions@github.com"])
-    subprocess.run(["git", "config", "--global", "adam-hassen", "GitHub Actions"])
+    subprocess.run(["git", "config", "--global", "adam", "GitHub Actions"])
     subprocess.run(["git", "add", DATA_FOLDER])
     subprocess.run(["git", "commit", "-m", f"Update prix {datetime.now().strftime('%Y-%m-%d')}"])
     subprocess.run(["git", "push"])
