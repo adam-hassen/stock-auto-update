@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install yfinance tiingo pandas google-auth google-auth-httplib2 google-api-python-client
+          pip install yfinance tiingo pandas google-api-python-client
 
       - name: Run pipeline
         env:
