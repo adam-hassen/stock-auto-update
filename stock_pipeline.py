@@ -59,12 +59,26 @@ def collect_tiingo():
 # ====================== GIT COMMIT + PUSH ======================
 def commit_and_push():
     print("Commit + Push sur GitHub...")
-    subprocess.run(["git", "config", "--global", "user.adam.hassen@esprit.tn", "actions@github.com"])
-    subprocess.run(["git", "config", "--global", "user.adam-hassen", "GitHub Actions"])
+    # Fix git identity
+    subprocess.run(["git", "config", "user.adam.hassen@esprit.tn", "github-actions@github.com"])
+    subprocess.run(["git", "config", "user.adam-hassen", "GitHub Actions Bot"])
+    
+    # Add + commit
     subprocess.run(["git", "add", DATA_FOLDER])
-    subprocess.run(["git", "commit", "-m", f"Update prix {datetime.now().strftime('%Y-%m-%d')}"])
-    subprocess.run(["git", "push"])
+    result = subprocess.run(["git", "commit", "-m", f"Update prix {datetime.now().strftime('%Y-%m-%d')}"], capture_output=True, text=True)
+    
+    if "nothing to commit" in result.stdout:
+        print("Aucun changement → pas de commit")
+        return
+    
+    # Push avec token intégré (GITHUB_TOKEN auto)
+    subprocess.run([
+        "git", "push", 
+        "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git", 
+        "HEAD:main"
+    ], env=os.environ)
     print("TOUT PUSHÉ SUR GIT !")
+
 
 # ====================== MAIN ======================
 if __name__ == "__main__":
