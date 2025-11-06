@@ -9,24 +9,18 @@ import pandas as pd
 from datetime import datetime
 import yfinance as yf
 from tiingo import TiingoClient
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+import subprocess  # ← Pour git commit/push
 
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-TOKEN_FILE = 'token.json'
-FOLDER_ID = '1LOk5epELmfSV0U_XnKPN_DWG5Vql3xGa'
 
+
+# ====================== CONFIG ======================
 TIINGO_API_KEY = os.getenv('TIINGO_API_KEY')
 if not TIINGO_API_KEY:
     raise ValueError("TIINGO_API_KEY manquante !")
 
-def authenticate_google_drive():
-    creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-    if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    return build('drive', 'v3', credentials=creds)
+DATA_FOLDER = "data"  # ← Dossier dans ton repo
+os.makedirs(DATA_FOLDER, exist_ok=True)
+os.makedirs(f"{DATA_FOLDER}/tiingo", exist_ok=True)
 
 def collect_yfinance():
     symbols = ["AAPL", "TSLA", "MSFT", "BTC-USD", "GOOGL"]
@@ -62,25 +56,20 @@ def collect_tiingo():
     pd.concat(all_data).to_csv(f"{path}/ALL_TIINGO.csv", index=False)
     return "/tmp/stock_data"
 
-def upload_to_drive(local_path):
-    print("Upload Drive...")
-    service = authenticate_google_drive()
-    for root, _, files in os.walk(local_path):
-        for file in files:
-            file_path = os.path.join(root, file)
-            name = os.path.relpath(file_path, local_path).replace(os.sep, '_')
-            try:
-                service.files().create(
-                    body={'name': name, 'parents': [FOLDER_ID]},
-                    media_body=MediaFileUpload(file_path)
-                ).execute()
-                print(f"  OK: {name}")
-            except Exception as e:
-                print(f"  ERREUR: {e}")
+# ====================== GIT COMMIT + PUSH ======================
+def commit_and_push():
+    print("Commit + Push sur GitHub...")
+    subprocess.run(["git", "config", "--global", "adam.hassen@esprit.tn", "actions@github.com"])
+    subprocess.run(["git", "config", "--global", "adam-hassen", "GitHub Actions"])
+    subprocess.run(["git", "add", DATA_FOLDER])
+    subprocess.run(["git", "commit", "-m", f"Update prix {datetime.now().strftime('%Y-%m-%d')}"])
+    subprocess.run(["git", "push"])
+    print("TOUT PUSHÉ SUR GIT !")
 
+# ====================== MAIN ======================
 if __name__ == "__main__":
-    print("DÉBUT -", datetime.now().strftime("%H:%M"))
+    print("DÉBUT PIPELINE GIT -", datetime.now().strftime("%Y-%m-%d %H:%M"))
     collect_yfinance()
     collect_tiingo()
-    upload_to_drive("/tmp/stock_data")
-    print("TERMINÉ – PRIX DANS DRIVE")
+    commit_and_push()
+    print("TERMINÉ – PRIX DANS LE REPO GIT")
