@@ -1,27 +1,27 @@
 {
-  "date_analyse": "2025-11-20 10:31:21",
-  "total_anomalies": 1343,
+  "date_analyse": "2025-11-20 11:02:34",
+  "total_anomalies": 1986,
   "par_type": {
-    "CASSURE_TENDANCE": 671,
-    "RSI_EXTREME": 296,
-    "VOLATILITE_EXTREME": 117,
-    "VOLUME_ANORMAL": 104,
-    "GAP_OUVERTURE": 102,
-    "MOUVEMENT_EXTREME": 53
+    "CASSURE_TENDANCE": 969,
+    "RSI_EXTREME": 482,
+    "VOLATILITE_EXTREME": 167,
+    "VOLUME_ANORMAL": 159,
+    "GAP_OUVERTURE": 135,
+    "MOUVEMENT_EXTREME": 74
   },
   "par_severite": {
-    "MOYENNE": 1173,
-    "HAUTE": 170
+    "MOYENNE": 1745,
+    "HAUTE": 241
   },
   "par_action": {
-    "BTC-USD": 243,
-    "TSLA": 169,
-    "NVDA": 169,
-    "GOOGL": 158,
-    "MSFT": 155,
-    "AAPL": 154,
-    "META": 150,
-    "AMZN": 145
+    "BTC-USD": 373,
+    "TSLA": 264,
+    "NVDA": 252,
+    "GOOGL": 233,
+    "META": 233,
+    "MSFT": 223,
+    "AAPL": 209,
+    "AMZN": 199
   },
   "anomalies_recentes": [
     {
@@ -30,8 +30,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 114346441890,
-      "description": "Volume anormal: 114,346,441,890 vs moyenne 44,788,655,486",
-      "ratio_volume": 2.553022426081188
+      "description": "Volume anormal: 114,346,441,890 vs moyenne 35,988,285,775",
+      "ratio_volume": 3.1773239382921177
     },
     {
       "symbol": "AMZN",
@@ -61,6 +61,15 @@
       "description": "Cassure BAISSE de la MM50",
       "prix": 401.989990234375,
       "MA_50": 428.59739990234374
+    },
+    {
+      "symbol": "BTC-USD",
+      "date": "2025-11-13",
+      "type": "VOLUME_ANORMAL",
+      "severite": "MOYENNE",
+      "valeur": 101546815416,
+      "description": "Volume anormal: 101,546,815,416 vs moyenne 35,988,285,775",
+      "ratio_volume": 2.8216630281243975
     },
     {
       "symbol": "NVDA",
@@ -108,16 +117,6 @@
       "description": "Cassure HAUSSE de la MM20",
       "prix": 199.0500030517578,
       "MA_20": 190.91950073242188
-    },
-    {
-      "symbol": "TSLA",
-      "date": "2025-11-07",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure BAISSE de la MM20",
-      "prix": 429.5199890136719,
-      "MA_20": 445.0660003662109
     }
   ]
 }
