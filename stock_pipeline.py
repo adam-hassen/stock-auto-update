@@ -10,7 +10,6 @@ from datetime import datetime
 import yfinance as yf
 import subprocess
 import json
-from scipy import stats
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -23,6 +22,16 @@ os.makedirs(DATA_FOLDER, exist_ok=True)
 SYMBOLS = ["AAPL", "TSLA", "MSFT", "BTC-USD", "GOOGL", "NVDA", "AMZN", "META"]
 
 # ====================== DÉTECTION D'ANOMALIES AVANCÉE ======================
+def calculate_zscore(data):
+    """Calcule le Z-score sans scipy"""
+    if len(data) == 0:
+        return np.array([])
+    mean = np.mean(data)
+    std = np.std(data)
+    if std == 0:
+        return np.zeros(len(data))
+    return np.abs((data - mean) / std)
+
 def detect_anomalies_avancee(df, symbol):
     """Détection avancée des anomalies dans les données financières"""
     
@@ -31,7 +40,7 @@ def detect_anomalies_avancee(df, symbol):
     # 1. ANOMALIES DE PRIX (Mouvements extrêmes)
     returns = df['Close'].pct_change().dropna()
     if len(returns) > 0:
-        z_scores_returns = np.abs(stats.zscore(returns))
+        z_scores_returns = calculate_zscore(returns)
         extreme_returns_idx = np.where(z_scores_returns > 3)[0]
         
         for idx in extreme_returns_idx:
@@ -53,7 +62,7 @@ def detect_anomalies_avancee(df, symbol):
     # 2. ANOMALIES DE VOLUME (Volume anormalement élevé)
     volume_data = df['Volume'].dropna()
     if len(volume_data) > 0:
-        volume_z_scores = np.abs(stats.zscore(volume_data))
+        volume_z_scores = calculate_zscore(volume_data)
         high_volume_idx = np.where(volume_z_scores > 2.5)[0]
         
         for idx in high_volume_idx:
@@ -76,7 +85,7 @@ def detect_anomalies_avancee(df, symbol):
     df['overnight_gap'] = (df['Open'] - df['Close'].shift(1)) / df['Close'].shift(1)
     gap_data = df['overnight_gap'].dropna()
     if len(gap_data) > 0:
-        gap_z_scores = np.abs(stats.zscore(gap_data))
+        gap_z_scores = calculate_zscore(gap_data)
         gap_anomalies_idx = np.where(gap_z_scores > 2.5)[0]
         
         for idx in gap_anomalies_idx:
@@ -99,7 +108,7 @@ def detect_anomalies_avancee(df, symbol):
     if len(returns) > 10:
         volatilite_rolling = returns.rolling(window=10).std().dropna()
         if len(volatilite_rolling) > 0:
-            vol_z_scores = np.abs(stats.zscore(volatilite_rolling))
+            vol_z_scores = calculate_zscore(volatilite_rolling)
             high_vol_idx = np.where(vol_z_scores > 2.5)[0]
             
             for idx in high_vol_idx:
@@ -174,7 +183,7 @@ def detect_anomalies_avancee(df, symbol):
 def sauvegarder_anomalies(anomalies_par_action):
     """Sauvegarde toutes les anomalies détectées"""
     if not any(anomalies_par_action.values()):
-        print(" Aucune anomalie détectée")
+        print("✅ Aucune anomalie détectée")
         return
     
     # Combiner toutes les anomalies
@@ -201,8 +210,9 @@ def sauvegarder_anomalies(anomalies_par_action):
     with open(f"{DATA_FOLDER}/resume_anomalies.json", "w") as f:
         json.dump(resume_anomalies, f, indent=2, ensure_ascii=False)
     
-    print(f" {len(toutes_anomalies)} anomalies détectées et sauvegardées")
-    print(f"    Répartition: {resume_anomalies['par_type']}")
+    print(f"✅ {len(toutes_anomalies)} anomalies détectées et sauvegardées")
+    if resume_anomalies['par_type']:
+        print(f"   📊 Répartition: {resume_anomalies['par_type']}")
 
 # ====================== NETTOYAGE DES DONNÉES ======================
 def clean_data(df, symbol):
@@ -261,7 +271,7 @@ def create_essential_features(df, symbol):
     # Nettoyer les NaN
     df = df.dropna()
     
-    print(f" {symbol}: {len(df)} lignes avec features")
+    print(f"✅ {symbol}: {len(df)} lignes avec features")
     return df
 
 # ====================== SAUVEGARDE DES 3 VERSIONS ======================
@@ -284,19 +294,19 @@ def save_combined_files(all_cleaned_data, all_features_data):
     # 2. Fichier combiné NETTOYÉ seulement
     combined_cleaned = pd.concat(all_cleaned_data, ignore_index=True)
     combined_cleaned.to_csv(f"{DATA_FOLDER}/ALL_CLEANED.csv", index=False)
-    print(" ALL_CLEANED.csv sauvegardé")
+    print("💾 ALL_CLEANED.csv sauvegardé")
     
     # 3. Fichier combiné avec FEATURES
     combined_features = pd.concat(all_features_data, ignore_index=True)
     combined_features.to_csv(f"{DATA_FOLDER}/ALL_FEATURES.csv", index=False)
-    print(" ALL_FEATURES.csv sauvegardé")
+    print("💾 ALL_FEATURES.csv sauvegardé")
     
     return combined_cleaned, combined_features
 
 # ====================== RAPPORT SIMPLIFIÉ ======================
 def generate_simple_report(combined_cleaned, combined_features):
     """Rapport simple des données disponibles"""
-    print(" Génération du rapport...")
+    print("📊 Génération du rapport...")
     
     report_data = []
     
@@ -316,7 +326,7 @@ def generate_simple_report(combined_cleaned, combined_features):
     if report_data:
         report_df = pd.DataFrame(report_data)
         report_df.to_csv(f"{DATA_FOLDER}/data_report.csv", index=False)
-        print(" Rapport généré")
+        print("✅ Rapport généré")
 
 # ====================== COLLECTE YFINANCE ======================
 def collect_yfinance():
@@ -325,7 +335,7 @@ def collect_yfinance():
     all_features_data = []
     anomalies_par_action = {}
     
-    print(" Collecte des données yFinance...")
+    print("📈 Collecte des données yFinance...")
     
     for symbol in SYMBOLS:
         try:
@@ -350,13 +360,13 @@ def collect_yfinance():
             anomalies_par_action[symbol] = anomalies
             
             if anomalies:
-                print(f"    {len(anomalies)} anomalies détectées")
+                print(f"   ⚠️  {len(anomalies)} anomalies détectées")
             
             # Sauvegarde des 3 versions
             save_all_versions(df_clean, df_features, symbol, all_cleaned_data, all_features_data)
             
         except Exception as e:
-            print(f" Erreur avec {symbol}: {e}")
+            print(f"❌ Erreur avec {symbol}: {e}")
     
     # Sauvegarde des fichiers combinés
     if all_cleaned_data:
@@ -368,7 +378,7 @@ def collect_yfinance():
         # Sauvegarde des anomalies
         sauvegarder_anomalies(anomalies_par_action)
         
-        print(f" Collecte terminée")
+        print(f"✅ Collecte terminée")
         print(f"   • Fichiers individuels: {len(SYMBOLS)} actions")
         print(f"   • Fichier combiné nettoyé: {len(combined_cleaned)} lignes")
         print(f"   • Fichier combiné avec features: {len(combined_features)} lignes")
@@ -380,7 +390,7 @@ def collect_yfinance():
 # ====================== GIT ACTIONS ======================
 def git_actions():
     """Gère les actions Git"""
-    print(" Actions Git...")
+    print("🔄 Actions Git...")
     
     subprocess.run(["git", "config", "user.email", "github-actions@github.com"])
     subprocess.run(["git", "config", "user.name", "GitHub Actions Bot"])
@@ -392,7 +402,7 @@ def git_actions():
                           capture_output=True, text=True)
     
     if commit.returncode != 0 or "nothing to commit" in commit.stdout:
-        print(" Aucun changement à commiter")
+        print("✅ Aucun changement à commiter")
         return False
     
     repo = os.getenv('GITHUB_REPOSITORY')
@@ -400,15 +410,15 @@ def git_actions():
     push = subprocess.run(["git", "push", url, "HEAD:main"], capture_output=True, text=True)
     
     if push.returncode == 0:
-        print(" Push réussi !")
+        print("✅ Push réussi !")
         return True
     else:
-        print(" Erreur push:", push.stderr)
+        print("❌ Erreur push:", push.stderr)
         return False
 
 # ====================== MAIN ======================
 if __name__ == "__main__":
-    print(" DÉBUT PIPELINE COMPLÈTE AVEC ANOMALIES")
+    print("🚀 DÉBUT PIPELINE COMPLÈTE AVEC ANOMALIES")
     print("=" * 50)
     
     try:
@@ -416,7 +426,7 @@ if __name__ == "__main__":
         collect_yfinance()
         
         print("\n" + "=" * 50)
-        print(" FICHIERS CRÉÉS:")
+        print("📦 FICHIERS CRÉÉS:")
         print("   1. FICHIERS INDIVIDUELS (nettoyés + features):")
         for symbol in SYMBOLS:
             file_path = f"{DATA_FOLDER}/{symbol}.csv"
@@ -438,10 +448,10 @@ if __name__ == "__main__":
         git_success = git_actions()
         
         if git_success:
-            print("\n PIPELINE TERMINÉE AVEC SUCCÈS !")
+            print("\n🎉 PIPELINE TERMINÉE AVEC SUCCÈS !")
         else:
-            print("\n  Pipeline terminée (aucun changement)")
+            print("\nℹ️  Pipeline terminée (aucun changement)")
             
     except Exception as e:
-        print(f"\n ERREUR CRITIQUE: {e}")
+        print(f"\n💥 ERREUR CRITIQUE: {e}")
         raise
