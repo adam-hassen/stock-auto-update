@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-PIPELINE PRIX → NETTOYAGE → FEATURES → GIT REPO
+PIPELINE COMPLÈTE : yFinance → Nettoyage → Features → Analyse → Git
 """
 
 import os
@@ -8,257 +8,302 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import yfinance as yf
-from tiingo import TiingoClient
 import subprocess
+import json
 
 # ====================== CONFIG ======================
-TIINGO_API_KEY = os.getenv('TIINGO_API_KEY')
-if not TIINGO_API_KEY:
-    raise ValueError("TIINGO_API_KEY manquante !")
-
 PUSH_TOKEN = os.getenv('PUSH_TOKEN')
-if not PUSH_TOKEN:
-    raise ValueError("PUSH_TOKEN manquant !")
 
 DATA_FOLDER = "data"
-CLEANED_FOLDER = "data/cleaned"
-FEATURES_FOLDER = "data/features"
 os.makedirs(DATA_FOLDER, exist_ok=True)
-os.makedirs(CLEANED_FOLDER, exist_ok=True)
-os.makedirs(FEATURES_FOLDER, exist_ok=True)
+
+# Symboles à tracker
+SYMBOLS = ["AAPL", "TSLA", "MSFT", "BTC-USD", "GOOGL", "NVDA", "AMZN", "META"]
 
 # ====================== NETTOYAGE DES DONNÉES ======================
 def clean_data(df, symbol):
-    """
-    Nettoyage complet des données financières
-    """
-    # Supprimer les doublons
-    df = df.drop_duplicates(subset=['date'], keep='last')
+    """Nettoyage des données financières"""
+    df = df.drop_duplicates(subset=['date']).sort_values('date').reset_index(drop=True)
     
-    # Trier par date
-    df = df.sort_values('date').reset_index(drop=True)
-    
-    # Vérifier les valeurs manquantes
-    print(f"Valeurs manquantes pour {symbol}:")
-    print(df.isnull().sum())
-    
-    # Remplir les valeurs manquantes (méthode forward fill pour les données financières)
+    # Gestion des valeurs manquantes
     numeric_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
     for col in numeric_cols:
         if col in df.columns:
             df[col] = df[col].fillna(method='ffill').fillna(method='bfill')
     
-    # Supprimer les lignes où le prix de clôture est manquant
+    # Supprimer les données invalides
+    df = df[df['Close'] > 0]
     df = df.dropna(subset=['Close'])
     
-    # Vérifier les valeurs aberrantes (prix négatifs)
-    df = df[df['Close'] > 0]
-    df = df[df['Volume'] >= 0]
-    
-    # Normaliser les formats de date
+    # Format standard
     df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m-%d')
+    df['symbol'] = symbol
     
-    # Ajouter la colonne symbol si elle n'existe pas
-    if 'symbol' not in df.columns:
-        df['symbol'] = symbol
-    
-    print(f"Données nettoyées pour {symbol}: {len(df)} lignes")
     return df
 
-# ====================== CRÉATION DES FEATURES ======================
-def create_features(df, symbol):
-    """
-    Création des features techniques pour le modèle ML
-    """
-    # S'assurer que les données sont triées par date
+# ====================== FEATURES TECHNIQUES ======================
+def create_technical_features(df, symbol):
+    """Création des features techniques pour le ML"""
     df = df.sort_values('date').reset_index(drop=True)
     
-    # Features de base
-    df['price_change'] = df['Close'].pct_change()
-    df['daily_return'] = df['Close'].pct_change() * 100
-    df['high_low_ratio'] = df['High'] / df['Low']
-    df['volume_change'] = df['Volume'].pct_change()
+    # 1. RETOURS ET MOUVEMENTS
+    df['daily_return'] = df['Close'].pct_change()
+    df['price_change'] = df['Close'].diff()
     
-    # Moyennes mobiles
-    df['MA_5'] = df['Close'].rolling(window=5).mean()
-    df['MA_10'] = df['Close'].rolling(window=10).mean()
-    df['MA_20'] = df['Close'].rolling(window=20).mean()
-    df['MA_50'] = df['Close'].rolling(window=50).mean()
+    # 2. VOLATILITÉ
+    df['volatility_5'] = df['daily_return'].rolling(5).std()
+    df['volatility_10'] = df['daily_return'].rolling(10).std()
+    df['volatility_20'] = df['daily_return'].rolling(20).std()
     
-    # Ratios des moyennes mobiles
-    df['MA_5_ratio'] = df['Close'] / df['MA_5']
-    df['MA_10_ratio'] = df['Close'] / df['MA_10']
-    df['MA_20_ratio'] = df['Close'] / df['MA_20']
+    # 3. MOYENNES MOBILES
+    for window in [5, 10, 20, 50]:
+        df[f'MA_{window}'] = df['Close'].rolling(window).mean()
+        df[f'price_vs_MA_{window}'] = (df['Close'] / df[f'MA_{window}']) - 1
     
-    # RSI (Relative Strength Index)
+    # 4. RSI
     def calculate_rsi(prices, window=14):
         delta = prices.diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
         rs = gain / loss
-        rsi = 100 - (100 / (1 + rs))
-        return rsi
+        return 100 - (100 / (1 + rs))
     
     df['RSI_14'] = calculate_rsi(df['Close'])
     
-    # MACD (Moving Average Convergence Divergence)
-    exp12 = df['Close'].ewm(span=12, adjust=False).mean()
-    exp26 = df['Close'].ewm(span=26, adjust=False).mean()
-    df['MACD'] = exp12 - exp26
-    df['MACD_signal'] = df['MACD'].ewm(span=9, adjust=False).mean()
-    df['MACD_histogram'] = df['MACD'] - df['MACD_signal']
+    # 5. VOLUME ANALYSIS
+    df['volume_MA_5'] = df['Volume'].rolling(5).mean()
+    df['volume_ratio'] = df['Volume'] / df['volume_MA_5']
     
-    # Bollinger Bands
-    df['BB_middle'] = df['Close'].rolling(window=20).mean()
-    bb_std = df['Close'].rolling(window=20).std()
-    df['BB_upper'] = df['BB_middle'] + (bb_std * 2)
-    df['BB_lower'] = df['BB_middle'] - (bb_std * 2)
-    df['BB_position'] = (df['Close'] - df['BB_lower']) / (df['BB_upper'] - df['BB_lower'])
+    # 6. PRICE RANGE AND MOMENTUM
+    df['price_range'] = (df['High'] - df['Low']) / df['Close']
+    df['momentum_5'] = df['Close'].pct_change(5)
+    df['momentum_10'] = df['Close'].pct_change(10)
     
-    # Volatilité
-    df['volatility_5'] = df['Close'].pct_change().rolling(window=5).std()
-    df['volatility_10'] = df['Close'].pct_change().rolling(window=10).std()
-    df['volatility_20'] = df['Close'].pct_change().rolling(window=20).std()
+    # 7. TARGET VARIABLES (pour la prédiction)
+    df['target_3_days'] = (df['Close'].shift(-3) / df['Close']) - 1
+    df['target_7_days'] = (df['Close'].shift(-7) / df['Close']) - 1
+    df['target_direction_3d'] = (df['target_3_days'] > 0).astype(int)
+    df['target_direction_7d'] = (df['target_7_days'] > 0).astype(int)
     
-    # Features de momentum
-    df['momentum_5'] = df['Close'] / df['Close'].shift(5) - 1
-    df['momentum_10'] = df['Close'] / df['Close'].shift(10) - 1
+    # 8. TREND INDICATORS
+    df['trend_5'] = (df['Close'] > df['MA_5']).astype(int)
+    df['trend_20'] = (df['Close'] > df['MA_20']).astype(int)
     
-    # Target variable (prix futur - pour la prédiction)
-    df['target_5_days'] = df['Close'].shift(-5) / df['Close'] - 1  # Rendement dans 5 jours
-    df['target_direction'] = (df['target_5_days'] > 0).astype(int)  # 1 si hausse, 0 si baisse
+    # 9. SUPPORT/RESISTANCE
+    df['resistance_20'] = df['High'].rolling(20).max()
+    df['support_20'] = df['Low'].rolling(20).min()
+    df['distance_to_resistance'] = (df['resistance_20'] - df['Close']) / df['Close']
+    df['distance_to_support'] = (df['Close'] - df['support_20']) / df['Close']
     
-    # Features temporelles
-    df['date_dt'] = pd.to_datetime(df['date'])
-    df['day_of_week'] = df['date_dt'].dt.dayofweek
-    df['month'] = df['date_dt'].dt.month
-    df['quarter'] = df['date_dt'].dt.quarter
-    
-    # Supprimer les NaN créés par les rolling windows
+    # Nettoyer les NaN créés par les rolling windows
     df = df.dropna()
     
-    print(f"Features créées pour {symbol}: {len(df)} lignes, {len(df.columns)} colonnes")
+    print(f"✅ {symbol}: {len(df)} lignes, {len(df.columns)} features")
     return df
+
+# ====================== ANALYSE ET RAPPORTS ======================
+def generate_analysis_report(all_data):
+    """Génère un rapport d'analyse des données"""
+    print("📊 Génération du rapport d'analyse...")
+    
+    analysis_report = {
+        "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "stocks_analyzed": [],
+        "summary": {}
+    }
+    
+    for symbol in all_data['symbol'].unique():
+        stock_data = all_data[all_data['symbol'] == symbol]
+        
+        stock_analysis = {
+            "symbol": symbol,
+            "data_points": len(stock_data),
+            "date_range": {
+                "start": stock_data['date'].min(),
+                "end": stock_data['date'].max()
+            },
+            "price_analysis": {
+                "current_price": stock_data['Close'].iloc[-1],
+                "price_change_7d": stock_data['Close'].pct_change(7).iloc[-1] * 100,
+                "price_change_30d": stock_data['Close'].pct_change(30).iloc[-1] * 100,
+                "volatility": stock_data['volatility_20'].iloc[-1] * 100
+            },
+            "technical_indicators": {
+                "rsi": stock_data['RSI_14'].iloc[-1],
+                "trend": "BULLISH" if stock_data['trend_20'].iloc[-1] == 1 else "BEARISH",
+                "volume_trend": "HIGH" if stock_data['volume_ratio'].iloc[-1] > 1.2 else "NORMAL"
+            }
+        }
+        
+        analysis_report["stocks_analyzed"].append(stock_analysis)
+    
+    # Sauvegarder le rapport
+    with open(f"{DATA_FOLDER}/analysis_report.json", "w") as f:
+        json.dump(analysis_report, f, indent=2)
+    
+    # Sauvegarder un résumé CSV
+    summary_df = pd.DataFrame([{
+        'symbol': stock['symbol'],
+        'current_price': stock['price_analysis']['current_price'],
+        '7d_change_%': stock['price_analysis']['price_change_7d'],
+        '30d_change_%': stock['price_analysis']['price_change_30d'],
+        'RSI': stock['technical_indicators']['rsi'],
+        'trend': stock['technical_indicators']['trend']
+    } for stock in analysis_report["stocks_analyzed"]])
+    
+    summary_df.to_csv(f"{DATA_FOLDER}/market_summary.csv", index=False)
+    print("✅ Rapport d'analyse généré")
+
+# ====================== DÉTECTION D'ANOMALIES ======================
+def detect_anomalies(all_data):
+    """Détecte les anomalies dans les données"""
+    print("🔍 Détection des anomalies...")
+    
+    anomalies = []
+    
+    for symbol in all_data['symbol'].unique():
+        stock_data = all_data[all_data['symbol'] == symbol]
+        
+        # Détection des volumes anormaux
+        volume_threshold = stock_data['Volume'].quantile(0.95)
+        high_volume_days = stock_data[stock_data['Volume'] > volume_threshold]
+        
+        # Détection des mouvements de prix extrêmes
+        price_move_threshold = stock_data['daily_return'].abs().quantile(0.95)
+        extreme_moves = stock_data[stock_data['daily_return'].abs() > price_move_threshold]
+        
+        if not high_volume_days.empty:
+            for _, row in high_volume_days.iterrows():
+                anomalies.append({
+                    'symbol': symbol,
+                    'date': row['date'],
+                    'type': 'HIGH_VOLUME',
+                    'value': row['Volume'],
+                    'message': f"Volume anormalement élevé: {row['Volume']:,.0f}"
+                })
+        
+        if not extreme_moves.empty:
+            for _, row in extreme_moves.iterrows():
+                anomalies.append({
+                    'symbol': symbol,
+                    'date': row['date'],
+                    'type': 'EXTREME_MOVE',
+                    'value': row['daily_return'] * 100,
+                    'message': f"Mouvement de prix extrême: {row['daily_return']*100:.2f}%"
+                })
+    
+    # Sauvegarder les anomalies
+    if anomalies:
+        anomalies_df = pd.DataFrame(anomalies)
+        anomalies_df.to_csv(f"{DATA_FOLDER}/detected_anomalies.csv", index=False)
+        print(f"✅ {len(anomalies)} anomalies détectées")
+    else:
+        print("✅ Aucune anomalie détectée")
 
 # ====================== COLLECTE YFINANCE ======================
 def collect_yfinance():
-    symbols = ["AAPL", "TSLA", "MSFT", "BTC-USD", "GOOGL"]
-    all_raw_data = []
-    all_cleaned_data = []
-    all_features_data = []
+    """Collecte principale des données yFinance"""
+    all_data = []
     
-    print("Collecte yfinance...")
-    for s in symbols:
-        # Collecte
-        df = yf.Ticker(s).history(period="2y").reset_index()  # 2 ans pour avoir assez de données après nettoyage
-        df['symbol'] = s
-        df['date'] = df['Date'].dt.strftime('%Y-%m-%d')
-        df = df[['date', 'Open', 'High', 'Low', 'Close', 'Volume', 'symbol']]
-        all_raw_data.append(df)
-        
-        # Sauvegarde raw
-        df.to_csv(f"{DATA_FOLDER}/{s}.csv", index=False)
-        
-        # Nettoyage
-        df_cleaned = clean_data(df, s)
-        df_cleaned.to_csv(f"{CLEANED_FOLDER}/{s}_cleaned.csv", index=False)
-        all_cleaned_data.append(df_cleaned)
-        
-        # Features
-        df_features = create_features(df_cleaned, s)
-        df_features.to_csv(f"{FEATURES_FOLDER}/{s}_features.csv", index=False)
-        all_features_data.append(df_features)
+    print("📈 Collecte des données yFinance...")
     
-    # Sauvegarde des données combinées
-    pd.concat(all_raw_data).to_csv(f"{DATA_FOLDER}/ALL_YFINANCE.csv", index=False)
-    pd.concat(all_cleaned_data).to_csv(f"{CLEANED_FOLDER}/ALL_YFINANCE_cleaned.csv", index=False)
-    pd.concat(all_features_data).to_csv(f"{FEATURES_FOLDER}/ALL_YFINANCE_features.csv", index=False)
-    print("yfinance OK - Données nettoyées et features créées")
-
-# ====================== COLLECTE TIINGO ======================
-def collect_tiingo():
-    client = TiingoClient({'api_key': TIINGO_API_KEY, 'session': True})
-    symbols = ["AAPL", "TSLA", "MSFT", "GOOGL"]
-    all_raw_data = []
-    all_cleaned_data = []
-    all_features_data = []
-    
-    print("Collecte Tiingo...")
-    for s in symbols:
+    for symbol in SYMBOLS:
         try:
-            # Collecte
-            df = client.get_dataframe(s, frequency='daily', 
-                                    startDate=datetime.now().replace(year=datetime.now().year-2))
-            df = df.reset_index()
-            df['symbol'] = s
-            df = df[['date', 'open', 'high', 'low', 'close', 'volume', 'symbol']]
-            df.columns = ['date', 'Open', 'High', 'Low', 'Close', 'Volume', 'symbol']
-            all_raw_data.append(df)
+            # Collecte des données (2 ans pour avoir assez d'historique)
+            ticker = yf.Ticker(symbol)
+            df = ticker.history(period="2y").reset_index()
             
-            # Sauvegarde raw
-            df.to_csv(f"{DATA_FOLDER}/tiingo/{s}_prices.csv", index=False)
+            # Préparation des données
+            df['symbol'] = symbol
+            df['date'] = df['Date'].dt.strftime('%Y-%m-%d')
+            df = df[['date', 'Open', 'High', 'Low', 'Close', 'Volume', 'symbol']]
             
-            # Nettoyage
-            df_cleaned = clean_data(df, s)
-            df_cleaned.to_csv(f"{CLEANED_FOLDER}/tiingo/{s}_cleaned.csv", index=False)
-            all_cleaned_data.append(df_cleaned)
+            # Nettoyage et features
+            df_clean = clean_data(df, symbol)
+            df_features = create_technical_features(df_clean, symbol)
             
-            # Features
-            df_features = create_features(df_cleaned, s)
-            df_features.to_csv(f"{FEATURES_FOLDER}/tiingo/{s}_features.csv", index=False)
-            all_features_data.append(df_features)
+            # Sauvegarde individuelle
+            df_features.to_csv(f"{DATA_FOLDER}/{symbol}_with_features.csv", index=False)
+            all_data.append(df_features)
+            
+            print(f"✅ {symbol} - {len(df_features)} jours de données")
             
         except Exception as e:
-            print(f"Erreur avec {s}: {e}")
+            print(f"❌ Erreur avec {symbol}: {e}")
     
-    # Sauvegarde des données combinées
-    if all_raw_data:
-        pd.concat(all_raw_data).to_csv(f"{DATA_FOLDER}/tiingo/ALL_TIINGO.csv", index=False)
-    if all_cleaned_data:
-        pd.concat(all_cleaned_data).to_csv(f"{CLEANED_FOLDER}/tiingo/ALL_TIINGO_cleaned.csv", index=False)
-    if all_features_data:
-        pd.concat(all_features_data).to_csv(f"{FEATURES_FOLDER}/tiingo/ALL_TIINGO_features.csv", index=False)
-    print("Tiingo OK - Données nettoyées et features créées")
+    if all_data:
+        # Sauvegarde du fichier combiné
+        combined_data = pd.concat(all_data, ignore_index=True)
+        combined_data.to_csv(f"{DATA_FOLDER}/ALL_STOCKS_with_features.csv", index=False)
+        
+        # Actions supplémentaires
+        generate_analysis_report(combined_data)
+        detect_anomalies(combined_data)
+        
+        print(f"✅ Collecte terminée - {len(combined_data)} lignes au total")
+        return combined_data
+    else:
+        raise Exception("Aucune donnée collectée")
 
-# ====================== GIT COMMIT + PUSH ======================
-def commit_and_push():
-    print("Commit + Push avec PAT...")
+# ====================== GIT ACTIONS ======================
+def git_actions():
+    """Gère les actions Git"""
+    print("🔄 Actions Git...")
     
     # Configuration Git
     subprocess.run(["git", "config", "user.email", "github-actions@github.com"])
     subprocess.run(["git", "config", "user.name", "GitHub Actions Bot"])
     
-    # Add tous les dossiers de données
-    subprocess.run(["git", "add", DATA_FOLDER, CLEANED_FOLDER, FEATURES_FOLDER])
+    # Ajout de tous les fichiers data
+    subprocess.run(["git", "add", DATA_FOLDER])
     
     # Commit
-    commit = subprocess.run(["git", "commit", "-m", f"Update données {datetime.now().strftime('%Y-%m-%d')} - avec nettoyage et features"], 
+    commit_msg = f"🤖 Update data & analysis {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    commit = subprocess.run(["git", "commit", "-m", commit_msg], 
                           capture_output=True, text=True)
     
     if commit.returncode != 0 or "nothing to commit" in commit.stdout:
-        print("Rien à commiter (fichiers identiques)")
-        return
+        print("✅ Aucun changement à commiter")
+        return False
     
-    # Push avec PAT
+    # Push
     repo = os.getenv('GITHUB_REPOSITORY')
     url = f"https://{PUSH_TOKEN}@github.com/{repo}.git"
     push = subprocess.run(["git", "push", url, "HEAD:main"], capture_output=True, text=True)
     
     if push.returncode == 0:
-        print("PUSH RÉUSSI ! Nouveau commit sur main")
+        print("✅ Push réussi !")
+        return True
     else:
-        print("ERREUR PUSH:", push.stderr)
+        print("❌ Erreur push:", push.stderr)
+        return False
 
 # ====================== MAIN ======================
 if __name__ == "__main__":
-    print("DÉBUT PIPELINE COMPLÈTE -", datetime.now().strftime("%Y-%m-%d %H:%M"))
+    print("🚀 DÉBUT PIPELINE AVANCÉE")
+    print("=" * 50)
     
-    # Créer les sous-dossiers
-    os.makedirs(f"{CLEANED_FOLDER}/tiingo", exist_ok=True)
-    os.makedirs(f"{FEATURES_FOLDER}/tiingo", exist_ok=True)
-    
-    collect_yfinance()
-    collect_tiingo()
-    commit_and_push()
-    
-    print("TERMINÉ – DONNÉES NETTOYÉES ET FEATURES CRÉÉES")
+    try:
+        # Collecte et traitement des données
+        data = collect_yfinance()
+        
+        print("\n" + "=" * 50)
+        print("📦 Données prêtes pour le ML:")
+        print(f"   • Fichiers individuels: {[f'{s}_with_features.csv' for s in SYMBOLS]}")
+        print(f"   • Fichier combiné: ALL_STOCKS_with_features.csv")
+        print(f"   • Rapport: analysis_report.json")
+        print(f"   • Résumé: market_summary.csv")
+        print(f"   • Anomalies: detected_anomalies.csv")
+        
+        # Actions Git
+        print("\n" + "=" * 50)
+        git_success = git_actions()
+        
+        if git_success:
+            print("\n🎉 PIPELINE TERMINÉE AVEC SUCCÈS !")
+        else:
+            print("\nℹ️  Pipeline terminée (aucun changement)")
+            
+    except Exception as e:
+        print(f"\n💥 ERREUR CRITIQUE: {e}")
+        raise
