@@ -62,8 +62,8 @@ def detect_anomalies_avancee(df, symbol):
         for idx in extreme_returns_idx:
             if idx < len(df):
                 date_anomalie = df.iloc[idx]['date']
-                prix = float(df.iloc[idx]['Close'])  # Convertir en float
-                rendement = float(returns.iloc[idx] * 100)  # Convertir en float
+                prix = float(df.iloc[idx]['Close'])
+                rendement = float(returns.iloc[idx] * 100)
                 
                 anomalies.append({
                     'symbol': symbol,
@@ -84,8 +84,8 @@ def detect_anomalies_avancee(df, symbol):
         for idx in high_volume_idx:
             if idx < len(df):
                 date_anomalie = df.iloc[idx]['date']
-                volume = int(df.iloc[idx]['Volume'])  # Convertir en int
-                volume_moyen = float(df['Volume'].mean())  # Convertir en float
+                volume = int(df.iloc[idx]['Volume'])
+                volume_moyen = float(df['Volume'].mean())
                 
                 anomalies.append({
                     'symbol': symbol,
@@ -107,7 +107,7 @@ def detect_anomalies_avancee(df, symbol):
         for idx in gap_anomalies_idx:
             if idx < len(df):
                 date_anomalie = df.iloc[idx]['date']
-                gap_pourcentage = float(df.iloc[idx]['overnight_gap'] * 100)  # Convertir en float
+                gap_pourcentage = float(df.iloc[idx]['overnight_gap'] * 100)
                 
                 anomalies.append({
                     'symbol': symbol,
@@ -130,7 +130,7 @@ def detect_anomalies_avancee(df, symbol):
             for idx in high_vol_idx:
                 if idx + 10 < len(df):
                     date_anomalie = df.iloc[idx + 10]['date']
-                    volatilite = float(volatilite_rolling.iloc[idx] * 100)  # Convertir en float
+                    volatilite = float(volatilite_rolling.iloc[idx] * 100)
                     
                     anomalies.append({
                         'symbol': symbol,
@@ -163,7 +163,7 @@ def detect_anomalies_avancee(df, symbol):
                         'date': date_anomalie,
                         'type': 'CASSURE_TENDANCE',
                         'severite': 'MOYENNE',
-                        'valeur': int(window),  # Convertir en int
+                        'valeur': int(window),
                         'description': f"Cassure {direction} de la MM{window}",
                         'prix': float(df.iloc[idx]['Close']),
                         f'MA_{window}': float(df.iloc[idx][ma_col])
@@ -181,7 +181,7 @@ def detect_anomalies_avancee(df, symbol):
             for idx in rsi_extreme_idx:
                 if idx < len(df):
                     date_anomalie = df.iloc[idx]['date']
-                    rsi_valeur = float(df.iloc[idx]['RSI_14'])  # Convertir en float
+                    rsi_valeur = float(df.iloc[idx]['RSI_14'])
                     condition = "SURACHAT" if rsi_extreme_haut.iloc[idx] else "SURVENDE"
                     
                     anomalies.append({
@@ -220,7 +220,7 @@ def sauvegarder_anomalies(anomalies_par_action):
         'par_action': convert_numpy_types(df_anomalies['symbol'].value_counts().to_dict()),
         'anomalies_recentes': convert_numpy_types(sorted(toutes_anomalies, 
                                    key=lambda x: x['date'], 
-                                   reverse=True)[:10])  # 10 plus récentes
+                                   reverse=True)[:10])
     }
     
     # Sauvegarder le résumé en JSON
@@ -334,9 +334,9 @@ def generate_simple_report(combined_cleaned, combined_features):
                 'symbol': symbol,
                 'start_date': symbol_data['date'].min(),
                 'end_date': symbol_data['date'].max(),
-                'days_count': int(len(symbol_data)),  # Convertir en int
-                'last_price': float(symbol_data['Close'].iloc[-1]),  # Convertir en float
-                'last_volume': int(symbol_data['Volume'].iloc[-1])   # Convertir en int
+                'days_count': int(len(symbol_data)),
+                'last_price': float(symbol_data['Close'].iloc[-1]),
+                'last_volume': int(symbol_data['Volume'].iloc[-1])
             })
     
     # Sauvegarder le rapport
@@ -345,9 +345,9 @@ def generate_simple_report(combined_cleaned, combined_features):
         report_df.to_csv(f"{DATA_FOLDER}/data_report.csv", index=False)
         print("✅ Rapport généré")
 
-# ====================== COLLECTE YFINANCE ======================
+# ====================== COLLECTE YFINANCE CORRIGÉE ======================
 def collect_yfinance():
-    """Collecte principale des données yFinance"""
+    """Collecte principale des données yFinance - VERSION CORRIGÉE"""
     all_cleaned_data = []
     all_features_data = []
     anomalies_par_action = {}
@@ -356,14 +356,36 @@ def collect_yfinance():
     
     for symbol in SYMBOLS:
         try:
-            # Collecte des données
+            # COLLECTE CORRIGÉE - dates explicites pour éviter les données futures
             ticker = yf.Ticker(symbol)
-            df = ticker.history(period="2y").reset_index()
+            
+            # Utiliser des dates explicites au lieu de "period"
+            start_date = "2023-01-01"
+            end_date = datetime.now().strftime('%Y-%m-%d')
+            
+            df = ticker.history(start=start_date, end=end_date)
+            
+            if df.empty:
+                print(f"⚠️  Aucune donnée pour {symbol}")
+                continue
+            
+            # Vérification des dates collectées
+            dates_collectees = df.index.strftime('%Y-%m-%d').tolist()
+            print(f"📅 {symbol}: {min(dates_collectees)} → {max(dates_collectees)} ({len(df)} jours)")
             
             # Préparation des données
+            df = df.reset_index()
             df['symbol'] = symbol
             df['date'] = df['Date'].dt.strftime('%Y-%m-%d')
             df = df[['date', 'Open', 'High', 'Low', 'Close', 'Volume', 'symbol']]
+            
+            # FILTRE DE SÉCURITÉ - supprimer les dates futures
+            today = datetime.now().strftime('%Y-%m-%d')
+            df = df[df['date'] <= today]
+            
+            if df.empty:
+                print(f"⚠️  Aucune donnée valide après filtrage pour {symbol}")
+                continue
             
             # Nettoyage
             df_clean = clean_data(df, symbol)
@@ -378,6 +400,8 @@ def collect_yfinance():
             
             if anomalies:
                 print(f"   ⚠️  {len(anomalies)} anomalies détectées")
+            else:
+                print(f"   ✅ Aucune anomalie détectée")
             
             # Sauvegarde des 3 versions
             save_all_versions(df_clean, df_features, symbol, all_cleaned_data, all_features_data)
@@ -396,7 +420,7 @@ def collect_yfinance():
         sauvegarder_anomalies(anomalies_par_action)
         
         print(f"✅ Collecte terminée")
-        print(f"   • Fichiers individuels: {len(SYMBOLS)} actions")
+        print(f"   • Fichiers individuels: {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])} actions")
         print(f"   • Fichier combiné nettoyé: {len(combined_cleaned)} lignes")
         print(f"   • Fichier combiné avec features: {len(combined_features)} lignes")
         
