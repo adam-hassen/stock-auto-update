@@ -1,29 +1,76 @@
 {
-  "date_analyse": "2025-11-21 18:29:15",
-  "total_anomalies": 1989,
+  "date_analyse": "2025-11-24 18:33:51",
+  "total_anomalies": 1994,
   "par_type": {
-    "CASSURE_TENDANCE": 970,
-    "RSI_EXTREME": 483,
+    "CASSURE_TENDANCE": 972,
+    "RSI_EXTREME": 484,
     "VOLATILITE_EXTREME": 167,
-    "VOLUME_ANORMAL": 159,
+    "VOLUME_ANORMAL": 161,
     "GAP_OUVERTURE": 136,
     "MOUVEMENT_EXTREME": 74
   },
   "par_severite": {
-    "MOYENNE": 1748,
+    "MOYENNE": 1753,
     "HAUTE": 241
   },
   "par_action": {
-    "BTC-USD": 373,
+    "BTC-USD": 375,
     "TSLA": 264,
-    "NVDA": 252,
+    "NVDA": 253,
+    "META": 235,
     "GOOGL": 234,
-    "META": 234,
     "MSFT": 223,
     "AAPL": 210,
-    "AMZN": 199
+    "AMZN": 200
   },
   "anomalies_recentes": [
+    {
+      "symbol": "BTC-USD",
+      "date": "2025-11-20",
+      "type": "VOLUME_ANORMAL",
+      "severite": "MOYENNE",
+      "valeur": 97970645638,
+      "description": "Volume anormal: 97,970,645,638 vs moyenne 36,216,802,268",
+      "ratio_volume": 2.7051158441273255
+    },
+    {
+      "symbol": "BTC-USD",
+      "date": "2025-11-18",
+      "type": "VOLUME_ANORMAL",
+      "severite": "MOYENNE",
+      "valeur": 101333569062,
+      "description": "Volume anormal: 101,333,569,062 vs moyenne 36,216,802,268",
+      "ratio_volume": 2.79797118235244
+    },
+    {
+      "symbol": "NVDA",
+      "date": "2025-11-18",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure BAISSE de la MM50",
+      "prix": 181.36000061035156,
+      "MA_50": 186.18580108642578
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2025-11-18",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure BAISSE de la MM50",
+      "prix": 222.5500030517578,
+      "MA_50": 228.32559997558593
+    },
+    {
+      "symbol": "META",
+      "date": "2025-11-18",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": 11.241449578708725,
+      "description": "RSI en SURVENDE: 11.2",
+      "niveau": "SURVENDE"
+    },
     {
       "symbol": "AAPL",
       "date": "2025-11-17",
@@ -49,8 +96,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 114346441890,
-      "description": "Volume anormal: 114,346,441,890 vs moyenne 36,046,309,583",
-      "ratio_volume": 3.1722093943084184
+      "description": "Volume anormal: 114,346,441,890 vs moyenne 36,216,802,268",
+      "ratio_volume": 3.157276035713365
     },
     {
       "symbol": "GOOGL",
@@ -71,53 +118,6 @@
       "description": "Cassure BAISSE de la MM20",
       "prix": 234.69000244140625,
       "MA_20": 235.5150001525879
-    },
-    {
-      "symbol": "META",
-      "date": "2025-11-14",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": 12.348176163121138,
-      "description": "RSI en SURVENDE: 12.3",
-      "niveau": "SURVENDE"
-    },
-    {
-      "symbol": "TSLA",
-      "date": "2025-11-13",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure BAISSE de la MM50",
-      "prix": 401.989990234375,
-      "MA_50": 428.59739990234374
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2025-11-13",
-      "type": "VOLUME_ANORMAL",
-      "severite": "MOYENNE",
-      "valeur": 101546815416,
-      "description": "Volume anormal: 101,546,815,416 vs moyenne 36,046,309,583",
-      "ratio_volume": 2.817120992139147
-    },
-    {
-      "symbol": "NVDA",
-      "date": "2025-11-13",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure BAISSE de la MM20",
-      "prix": 186.86000061035156,
-      "MA_20": 192.52700119018556
-    },
-    {
-      "symbol": "META",
-      "date": "2025-11-13",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": 17.842310211983744,
-      "description": "RSI en SURVENDE: 17.8",
-      "niveau": "SURVENDE"
     }
   ]
 }
