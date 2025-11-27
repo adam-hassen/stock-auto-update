@@ -1,29 +1,38 @@
 {
-  "date_analyse": "2025-11-26 18:29:21",
-  "total_anomalies": 2003,
+  "date_analyse": "2025-11-27 18:31:13",
+  "total_anomalies": 2005,
   "par_type": {
-    "CASSURE_TENDANCE": 974,
-    "RSI_EXTREME": 487,
+    "CASSURE_TENDANCE": 975,
+    "RSI_EXTREME": 489,
     "VOLATILITE_EXTREME": 168,
-    "VOLUME_ANORMAL": 163,
+    "VOLUME_ANORMAL": 162,
     "GAP_OUVERTURE": 137,
     "MOUVEMENT_EXTREME": 74
   },
   "par_severite": {
-    "MOYENNE": 1761,
+    "MOYENNE": 1763,
     "HAUTE": 242
   },
   "par_action": {
-    "BTC-USD": 378,
+    "BTC-USD": 379,
     "TSLA": 264,
     "NVDA": 256,
     "META": 236,
     "GOOGL": 235,
     "MSFT": 223,
-    "AAPL": 210,
+    "AAPL": 211,
     "AMZN": 201
   },
   "anomalies_recentes": [
+    {
+      "symbol": "BTC-USD",
+      "date": "2025-11-23",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": 18.892325290453414,
+      "description": "RSI en SURVENDE: 18.9",
+      "niveau": "SURVENDE"
+    },
     {
       "symbol": "BTC-USD",
       "date": "2025-11-22",
@@ -34,13 +43,23 @@
       "niveau": "SURVENDE"
     },
     {
+      "symbol": "AAPL",
+      "date": "2025-11-21",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 271.489990234375,
+      "MA_20": 269.9424118041992
+    },
+    {
       "symbol": "BTC-USD",
       "date": "2025-11-21",
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 129157506112,
-      "description": "Volume anormal: 129,157,506,112 vs moyenne 36,313,545,324",
-      "ratio_volume": 3.556730827555956
+      "description": "Volume anormal: 129,157,506,112 vs moyenne 36,335,121,033",
+      "ratio_volume": 3.554618849208558
     },
     {
       "symbol": "BTC-USD",
@@ -52,13 +71,31 @@
       "niveau": "SURVENDE"
     },
     {
+      "symbol": "GOOGL",
+      "date": "2025-11-21",
+      "type": "VOLUME_ANORMAL",
+      "severite": "MOYENNE",
+      "valeur": 74137700,
+      "description": "Volume anormal: 74,137,700 vs moyenne 31,432,148",
+      "ratio_volume": 2.3586584134963555
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2025-11-21",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": 19.479573861253243,
+      "description": "RSI en SURVENDE: 19.5",
+      "niveau": "SURVENDE"
+    },
+    {
       "symbol": "BTC-USD",
       "date": "2025-11-20",
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 97970645638,
-      "description": "Volume anormal: 97,970,645,638 vs moyenne 36,313,545,324",
-      "ratio_volume": 2.697909134557532
+      "description": "Volume anormal: 97,970,645,638 vs moyenne 36,335,121,033",
+      "ratio_volume": 2.6963071224987933
     },
     {
       "symbol": "BTC-USD",
@@ -79,44 +116,6 @@
       "description": "Cassure BAISSE de la MM50",
       "prix": 180.63999938964844,
       "MA_50": 186.4392010498047
-    },
-    {
-      "symbol": "GOOGL",
-      "date": "2025-11-19",
-      "type": "VOLUME_ANORMAL",
-      "severite": "MOYENNE",
-      "valeur": 68198900,
-      "description": "Volume anormal: 68,198,900 vs moyenne 31,368,974",
-      "ratio_volume": 2.174087685404902
-    },
-    {
-      "symbol": "GOOGL",
-      "date": "2025-11-19",
-      "type": "GAP_OUVERTURE",
-      "severite": "MOYENNE",
-      "valeur": 1.0130874121216018,
-      "description": "Gap d'ouverture: 1.01%",
-      "ouverture": 287.1600036621094,
-      "cloture_precedente": 284.2799987792969
-    },
-    {
-      "symbol": "NVDA",
-      "date": "2025-11-19",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure HAUSSE de la MM50",
-      "prix": 186.52000427246094,
-      "MA_50": 186.36980102539061
-    },
-    {
-      "symbol": "META",
-      "date": "2025-11-19",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": 18.48358376053565,
-      "description": "RSI en SURVENDE: 18.5",
-      "niveau": "SURVENDE"
     }
   ]
 }
