@@ -1,27 +1,27 @@
 {
-  "date_analyse": "2025-11-28 18:31:20",
-  "total_anomalies": 2006,
+  "date_analyse": "2025-12-01 18:37:22",
+  "total_anomalies": 2009,
   "par_type": {
     "CASSURE_TENDANCE": 975,
     "RSI_EXTREME": 490,
     "VOLATILITE_EXTREME": 168,
-    "VOLUME_ANORMAL": 162,
-    "GAP_OUVERTURE": 137,
+    "VOLUME_ANORMAL": 164,
+    "GAP_OUVERTURE": 138,
     "MOUVEMENT_EXTREME": 74
   },
   "par_severite": {
-    "MOYENNE": 1764,
+    "MOYENNE": 1767,
     "HAUTE": 242
   },
   "par_action": {
     "BTC-USD": 380,
     "TSLA": 264,
     "NVDA": 256,
+    "GOOGL": 237,
     "META": 236,
-    "GOOGL": 235,
     "MSFT": 223,
     "AAPL": 211,
-    "AMZN": 201
+    "AMZN": 202
   },
   "anomalies_recentes": [
     {
@@ -32,6 +32,15 @@
       "valeur": 19.42011577845321,
       "description": "RSI en SURVENDE: 19.4",
       "niveau": "SURVENDE"
+    },
+    {
+      "symbol": "GOOGL",
+      "date": "2025-11-24",
+      "type": "VOLUME_ANORMAL",
+      "severite": "MOYENNE",
+      "valeur": 85165100,
+      "description": "Volume anormal: 85,165,100 vs moyenne 31,511,400",
+      "ratio_volume": 2.702675856991438
     },
     {
       "symbol": "BTC-USD",
@@ -67,8 +76,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 129157506112,
-      "description": "Volume anormal: 129,157,506,112 vs moyenne 36,372,842,592",
-      "ratio_volume": 3.5509324239307896
+      "description": "Volume anormal: 129,157,506,112 vs moyenne 36,451,081,231",
+      "ratio_volume": 3.5433106989295844
     },
     {
       "symbol": "BTC-USD",
@@ -82,39 +91,30 @@
     {
       "symbol": "GOOGL",
       "date": "2025-11-21",
+      "type": "MOUVEMENT_EXTREME",
+      "severite": "HAUTE",
+      "valeur": 6.313816551737772,
+      "description": "Mouvement de prix extrême: 6.31%",
+      "prix_ce_jour": 299.6600036621094
+    },
+    {
+      "symbol": "GOOGL",
+      "date": "2025-11-21",
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 74137700,
-      "description": "Volume anormal: 74,137,700 vs moyenne 31,432,148",
-      "ratio_volume": 2.3586584134963555
+      "description": "Volume anormal: 74,137,700 vs moyenne 31,511,400",
+      "ratio_volume": 2.3527263149209494
     },
     {
-      "symbol": "AMZN",
+      "symbol": "GOOGL",
       "date": "2025-11-21",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": 19.479573861253243,
-      "description": "RSI en SURVENDE: 19.5",
-      "niveau": "SURVENDE"
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2025-11-20",
-      "type": "VOLUME_ANORMAL",
-      "severite": "MOYENNE",
-      "valeur": 97970645638,
-      "description": "Volume anormal: 97,970,645,638 vs moyenne 36,372,842,592",
-      "ratio_volume": 2.6935108354270523
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2025-11-20",
       "type": "GAP_OUVERTURE",
       "severite": "MOYENNE",
-      "valeur": -0.0072602120648154155,
-      "description": "Gap d'ouverture: -0.01%",
-      "ouverture": 91459.3515625,
-      "cloture_precedente": 91465.9921875
+      "valeur": 2.408015521421979,
+      "description": "Gap d'ouverture: 2.41%",
+      "ouverture": 296.4200134277344,
+      "cloture_precedente": 289.45001220703125
     }
   ]
 }
