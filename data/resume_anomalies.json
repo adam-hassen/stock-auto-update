@@ -1,5 +1,5 @@
 {
-  "date_analyse": "2025-12-02 18:36:44",
+  "date_analyse": "2025-12-03 18:36:03",
   "total_anomalies": 2012,
   "par_type": {
     "CASSURE_TENDANCE": 977,
@@ -30,8 +30,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 88632100,
-      "description": "Volume anormal: 88,632,100 vs moyenne 31,595,525",
-      "ratio_volume": 2.80521057089548
+      "description": "Volume anormal: 88,632,100 vs moyenne 31,624,610",
+      "ratio_volume": 2.802630622548438
     },
     {
       "symbol": "AMZN",
@@ -68,8 +68,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 85165100,
-      "description": "Volume anormal: 85,165,100 vs moyenne 31,595,525",
-      "ratio_volume": 2.6954798407278027
+      "description": "Volume anormal: 85,165,100 vs moyenne 31,624,610",
+      "ratio_volume": 2.6930008115840645
     },
     {
       "symbol": "BTC-USD",
@@ -105,8 +105,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 129157506112,
-      "description": "Volume anormal: 129,157,506,112 vs moyenne 36,475,188,478",
-      "ratio_volume": 3.5409688476087657
+      "description": "Volume anormal: 129,157,506,112 vs moyenne 36,476,613,685",
+      "ratio_volume": 3.540830495589999
     },
     {
       "symbol": "BTC-USD",
