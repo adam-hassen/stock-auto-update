@@ -39,7 +39,7 @@ REPO1_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{REPO1_OWNER}/{REPO
 REPO2_PUBLIC_URL = f"https://github.com/{REPO2_OWNER}/{REPO2_NAME}.git"
 REPO2_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{REPO2_OWNER}/{REPO2_NAME}.git"
 
-print(f"📦 Configuration repositories:")
+print(f" Configuration repositories:")
 print(f"   • Repo exécution: {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
 print(f"   • Repo données: {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
 
@@ -258,7 +258,7 @@ def sauvegarder_anomalies(anomalies_par_action):
     
     print(f"✅ {len(toutes_anomalies)} anomalies détectées et sauvegardées")
     if resume_anomalies['par_type']:
-        print(f"   📊 Répartition: {resume_anomalies['par_type']}")
+        print(f"    Répartition: {resume_anomalies['par_type']}")
 
 # ====================== NETTOYAGE DES DONNÉES ======================
 def clean_data(df, symbol):
@@ -317,24 +317,24 @@ def save_all_versions(df_clean, df_features, symbol, all_cleaned_data, all_featu
     all_cleaned_data.append(df_clean)
     all_features_data.append(df_features)
     
-    print(f"💾 {symbol}.csv sauvegardé")
+    print(f" {symbol}.csv sauvegardé")
 
 def save_combined_files(all_cleaned_data, all_features_data):
     """Sauvegarde les fichiers combinés"""
     
     combined_cleaned = pd.concat(all_cleaned_data, ignore_index=True)
     combined_cleaned.to_csv(f"{DATA_FOLDER}/ALL_CLEANED.csv", index=False)
-    print("💾 ALL_CLEANED.csv sauvegardé")
+    print(" ALL_CLEANED.csv sauvegardé")
     
     combined_features = pd.concat(all_features_data, ignore_index=True)
     combined_features.to_csv(f"{DATA_FOLDER}/ALL_FEATURES.csv", index=False)
-    print("💾 ALL_FEATURES.csv sauvegardé")
+    print(" ALL_FEATURES.csv sauvegardé")
     
     return combined_cleaned, combined_features
 
 def generate_simple_report(combined_cleaned):
     """Rapport simple des données disponibles"""
-    print("📊 Génération du rapport...")
+    print(" Génération du rapport...")
     
     report_data = []
     
@@ -365,12 +365,12 @@ def collect_yfinance():
     all_features_data = []
     anomalies_par_action = {}
     
-    print("📈 Collecte des données yFinance...")
-    print(f"📅 Date du jour: {datetime.now().strftime('%Y-%m-%d')}")
+    print("Collecte des données yFinance...")
+    print(f"Date du jour: {datetime.now().strftime('%Y-%m-%d')}")
     
     for symbol in SYMBOLS:
         try:
-            print(f"\n🔍 Récupération {symbol}...")
+            print(f"\n Récupération {symbol}...")
             ticker = yf.Ticker(symbol)
             
             # ANCIENNE VERSION - TOUTES LES DONNÉES DEPUIS 2023
@@ -380,18 +380,18 @@ def collect_yfinance():
             # Essayer d'abord avec period="max" pour avoir le maximum
             try:
                 df = ticker.history(period="max")
-                print(f"   📊 Récupération MAXIMUM de données")
+                print(f"    Récupération MAXIMUM de données")
             except:
                 # Fallback sur les dates
                 df = ticker.history(start=start_date, end=end_date)
-                print(f"   📊 Récupération depuis {start_date}")
+                print(f"    Récupération depuis {start_date}")
             
             if df.empty:
                 print(f"⚠️  Aucune donnée pour {symbol}")
                 continue
             
             dates_collectees = df.index.strftime('%Y-%m-%d').tolist()
-            print(f"   📅 Période: {min(dates_collectees)} → {max(dates_collectees)} ({len(df)} jours)")
+            print(f"    Période: {min(dates_collectees)} → {max(dates_collectees)} ({len(df)} jours)")
             
             df = df.reset_index()
             df['symbol'] = symbol
@@ -403,7 +403,7 @@ def collect_yfinance():
             df = df[df['date'] <= today]
             
             if df.empty:
-                print(f"⚠️  Aucune donnée valide après filtrage pour {symbol}")
+                print(f"  Aucune donnée valide après filtrage pour {symbol}")
                 continue
             
             # Nettoyage
@@ -411,7 +411,7 @@ def collect_yfinance():
             
             # Features - MAIS on garde seulement les 180 derniers jours pour les features
             # pour éviter d'avoir trop de NaN au début
-            print(f"   🏗️  Création des features...")
+            print(f"     Création des features...")
             
             # Pour les features, on prend les 180 derniers jours
             df_recent = df_clean.copy()
@@ -458,8 +458,8 @@ def collect_yfinance():
 def git_actions_repo1():
     """Gère les actions Git pour le repo d'exécution (adam-hassen/stock-auto-update) - MAIN"""
     print("\n" + "="*50)
-    print(f"🔄 Actions Git - REPO D'EXÉCUTION...")
-    print(f"   📍 {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
+    print(f" Actions Git - REPO D'EXÉCUTION...")
+    print(f"    {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
     
     if not PUSH_TOKEN:
         print("❌ PUSH_TOKEN non configuré")
@@ -477,7 +477,7 @@ def git_actions_repo1():
     current_branch = branch_check.stdout.strip()
     
     if current_branch != REPO1_BRANCH:
-        print(f"🔄 Switching de '{current_branch}' à '{REPO1_BRANCH}'...")
+        print(f" Switching de '{current_branch}' à '{REPO1_BRANCH}'...")
         subprocess.run(["git", "checkout", REPO1_BRANCH], 
                        capture_output=True, text=True)
     
@@ -494,7 +494,7 @@ def git_actions_repo1():
         return False
     
     # Commit
-    commit_msg = f"📊 Update données financières {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    commit_msg = f" Update données financières {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     commit_result = subprocess.run(["git", "commit", "-m", commit_msg], 
                                  capture_output=True, text=True)
     
@@ -503,13 +503,13 @@ def git_actions_repo1():
         return False
     
     # Push vers la branche main
-    print(f"⬆️  Pushing vers {REPO1_BRANCH}...")
+    print(f"  Pushing vers {REPO1_BRANCH}...")
     push_result = subprocess.run(["git", "push", REPO1_URL, f"HEAD:{REPO1_BRANCH}", "--force"], 
                                capture_output=True, text=True)
     
     if push_result.returncode == 0:
         print(f"✅ Push réussi sur la branche {REPO1_BRANCH}!")
-        print(f"   🔗 https://github.com/{REPO1_OWNER}/{REPO1_NAME}/tree/{REPO1_BRANCH}")
+        print(f"    https://github.com/{REPO1_OWNER}/{REPO1_NAME}/tree/{REPO1_BRANCH}")
         return True
     else:
         print(f"❌ Erreur push: {push_result.stderr[:200]}")
@@ -519,8 +519,8 @@ def git_actions_repo1():
 def push_to_data_repo(combined_cleaned, combined_features, data_report):
     """Push les fichiers CSV vers le repo de données sur la branche Collecte-Des-Données"""
     print("\n" + "="*50)
-    print("🌐 Préparation du REPO DE DONNÉES...")
-    print(f"   📍 {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
+    print(" Préparation du REPO DE DONNÉES...")
+    print(f"    {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
     
     if not PUSH_TOKEN:
         print("❌ PUSH_TOKEN non configuré")
@@ -532,7 +532,7 @@ def push_to_data_repo(combined_cleaned, combined_features, data_report):
     original_dir = os.getcwd()
     
     try:
-        print(f"📁 Dossier temporaire: {temp_dir}")
+        print(f" Dossier temporaire: {temp_dir}")
         os.chdir(temp_dir)
         
         # Initialiser un nouveau repo git
@@ -544,7 +544,7 @@ def push_to_data_repo(combined_cleaned, combined_features, data_report):
         os.makedirs("data", exist_ok=True)
         
         # Sauvegarder les fichiers principaux
-        print("💾 Sauvegarde des fichiers...")
+        print(" Sauvegarde des fichiers...")
         
         if combined_cleaned is not None and not combined_cleaned.empty:
             combined_cleaned.to_csv("data/ALL_CLEANED.csv", index=False)
@@ -559,11 +559,11 @@ def push_to_data_repo(combined_cleaned, combined_features, data_report):
             print(f"   • data_report.csv: {len(data_report)} actions")
         
         # Ajouter un README spécifique
-        readme_content = f"""# 📊 Données Financières - Projet 4A
+        readme_content = f"""#  Données Financières - Projet 4A
 
 *Dernière mise à jour: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
 
-## 📁 Fichiers disponibles
+##  Fichiers disponibles
 
 Cette branche (`{REPO2_BRANCH}`) contient les données financières collectées automatiquement.
 
@@ -573,16 +573,16 @@ Cette branche (`{REPO2_BRANCH}`) contient les données financières collectées 
 | `data/ALL_FEATURES.csv` | Données avec indicateurs techniques | {len(combined_features) if combined_features is not None else 0} lignes |
 | `data/data_report.csv` | Rapport des données disponibles | {len(data_report) if data_report is not None else 0} actions |
 
-## 📈 Symboles suivis
+##  Symboles suivis
 
 {', '.join(SYMBOLS)}
 
-## 🔍 Source des données
+##  Source des données
 
 Données collectées depuis Yahoo Finance via l'API yFinance.
 Mises à jour automatiques quotidiennes à 20h (heure française).
 
-## 📊 Indicateurs inclus
+##  Indicateurs inclus
 
 Pour chaque symbole:
 - Prix (Open, High, Low, Close, Volume)
@@ -613,7 +613,7 @@ Ne constitue pas un conseil en investissement.
         subprocess.run(["git", "add", "."], check=True, capture_output=True)
         
         # Commit
-        commit_msg = f"📈 Mise à jour données {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        commit_msg = f" Mise à jour données {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         commit_result = subprocess.run(["git", "commit", "-m", commit_msg], 
                                      capture_output=True, text=True)
         
@@ -625,22 +625,22 @@ Ne constitue pas un conseil en investissement.
         subprocess.run(["git", "branch", "-M", REPO2_BRANCH], check=True, capture_output=True)
         
         # Ajouter le remote
-        print(f"🔗 Connexion au repo {REPO2_OWNER}/{REPO2_NAME}...")
+        print(f" Connexion au repo {REPO2_OWNER}/{REPO2_NAME}...")
         
         remote_add = subprocess.run(["git", "remote", "add", "origin", REPO2_URL], 
                                   capture_output=True, text=True)
         
         if remote_add.returncode != 0:
-            print(f"⚠️  Remote déjà configuré")
+            print(f"  Remote déjà configuré")
         
         # Force push vers la branche Collecte-Des-Données
-        print(f"⬆️  Pushing vers la branche {REPO2_BRANCH}...")
+        print(f"  Pushing vers la branche {REPO2_BRANCH}...")
         push_result = subprocess.run(["git", "push", "--force", "origin", REPO2_BRANCH], 
                                    capture_output=True, text=True)
         
         if push_result.returncode == 0:
             print(f"✅ Push réussi sur la branche {REPO2_BRANCH}!")
-            print(f"🔗 {REPO2_PUBLIC_URL}/tree/{REPO2_BRANCH}")
+            print(f" {REPO2_PUBLIC_URL}/tree/{REPO2_BRANCH}")
             return True
         else:
             print(f"❌ Erreur push: {push_result.stderr[:200]}")
@@ -660,11 +660,11 @@ Ne constitue pas un conseil en investissement.
 
 # ====================== MAIN ======================
 if __name__ == "__main__":
-    print("🚀 DÉBUT PIPELINE COMPLÈTE")
+    print(" DÉBUT PIPELINE COMPLÈTE")
     print("="*60)
-    print(f"🔑 Token utilisé: {'✅ PUSH_TOKEN' if PUSH_TOKEN else '❌ AUCUN'}")
-    print(f"📦 Repo exécution: {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
-    print(f"🌐 Repo données: {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
+    print(f" Token utilisé: {'✅ PUSH_TOKEN' if PUSH_TOKEN else '❌ AUCUN'}")
+    print(f" Repo exécution: {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
+    print(f" Repo données: {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
     print("="*60)
     
     try:
@@ -697,21 +697,21 @@ if __name__ == "__main__":
         
         if repo1_success:
             print(f"✅ REPO EXÉCUTION: Code + données mis à jour")
-            print(f"   📍 https://github.com/{REPO1_OWNER}/{REPO1_NAME}/tree/{REPO1_BRANCH}")
+            print(f"    https://github.com/{REPO1_OWNER}/{REPO1_NAME}/tree/{REPO1_BRANCH}")
         elif has_token:
-            print("ℹ️  REPO EXÉCUTION: Aucun changement détecté")
+            print("  REPO EXÉCUTION: Aucun changement détecté")
         else:
             print("⚠️  REPO EXÉCUTION: Skippé (pas de token)")
         
         if repo2_success:
             print(f"✅ REPO DONNÉES: Données publiées sur '{REPO2_BRANCH}'")
-            print(f"   📍 {REPO2_PUBLIC_URL}/tree/{REPO2_BRANCH}")
+            print(f"    {REPO2_PUBLIC_URL}/tree/{REPO2_BRANCH}")
         elif has_token:
             print("❌ REPO DONNÉES: Échec de la publication")
         else:
             print("⚠️  REPO DONNÉES: Skippé (pas de token)")
         
-        print("\n📊 STATISTIQUES FINALES:")
+        print("\n STATISTIQUES FINALES:")
         print(f"   • Actions traitées: {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)}")
         print(f"   • Données totales: {len(combined_cleaned) if combined_cleaned is not None else 0} lignes")
         print(f"   • Anomalies détectées: Voir {DATA_FOLDER}/ANOMALIES_DETECTEES.csv")
@@ -720,7 +720,7 @@ if __name__ == "__main__":
         print("🏁 PIPELINE TERMINÉE")
         
     except Exception as e:
-        print(f"\n💥 ERREUR CRITIQUE: {e}")
+        print(f"\n ERREUR CRITIQUE: {e}")
         import traceback
         traceback.print_exc()
         exit(1)
