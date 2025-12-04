@@ -360,7 +360,7 @@ def generate_simple_report(combined_cleaned):
 
 # ====================== COLLECTE YFINANCE ======================
 def collect_yfinance():
-    """Collecte principale des données yFinance"""
+    """Collecte principale des données yFinance - VERSION AVEC TOUTES LES DONNÉES"""
     all_cleaned_data = []
     all_features_data = []
     anomalies_par_action = {}
@@ -373,10 +373,18 @@ def collect_yfinance():
             print(f"\n🔍 Récupération {symbol}...")
             ticker = yf.Ticker(symbol)
             
-            start_date = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
+            # ANCIENNE VERSION - TOUTES LES DONNÉES DEPUIS 2023
+            start_date = "2023-01-01"
             end_date = datetime.now().strftime('%Y-%m-%d')
             
-            df = ticker.history(start=start_date, end=end_date)
+            # Essayer d'abord avec period="max" pour avoir le maximum
+            try:
+                df = ticker.history(period="max")
+                print(f"   📊 Récupération MAXIMUM de données")
+            except:
+                # Fallback sur les dates
+                df = ticker.history(start=start_date, end=end_date)
+                print(f"   📊 Récupération depuis {start_date}")
             
             if df.empty:
                 print(f"⚠️  Aucune donnée pour {symbol}")
@@ -390,6 +398,7 @@ def collect_yfinance():
             df['date'] = df['Date'].dt.strftime('%Y-%m-%d')
             df = df[['date', 'Open', 'High', 'Low', 'Close', 'Volume', 'symbol']]
             
+            # FILTRE IMPORTANT : supprimer les dates futures
             today = datetime.now().strftime('%Y-%m-%d')
             df = df[df['date'] <= today]
             
@@ -397,8 +406,20 @@ def collect_yfinance():
                 print(f"⚠️  Aucune donnée valide après filtrage pour {symbol}")
                 continue
             
+            # Nettoyage
             df_clean = clean_data(df, symbol)
-            df_features = create_essential_features(df_clean.copy(), symbol)
+            
+            # Features - MAIS on garde seulement les 180 derniers jours pour les features
+            # pour éviter d'avoir trop de NaN au début
+            print(f"   🏗️  Création des features...")
+            
+            # Pour les features, on prend les 180 derniers jours
+            df_recent = df_clean.copy()
+            # On calcule la date limite pour garder assez de données pour les MAs
+            cutoff_date = (datetime.now() - timedelta(days=200)).strftime('%Y-%m-%d')
+            df_recent = df_recent[df_recent['date'] >= cutoff_date]
+            
+            df_features = create_essential_features(df_recent, symbol)
             
             print(f"   🔍 Analyse des anomalies...")
             anomalies = detect_anomalies_avancee(df_features, symbol)
@@ -409,7 +430,12 @@ def collect_yfinance():
             else:
                 print(f"   ✅ Aucune anomalie")
             
-            save_all_versions(df_clean, df_features, symbol, all_cleaned_data, all_features_data)
+            # Sauvegarde des fichiers
+            df_features.to_csv(f"{DATA_FOLDER}/{symbol}.csv", index=False)
+            all_cleaned_data.append(df_clean)
+            all_features_data.append(df_features)
+            
+            print(f"💾 {symbol}.csv sauvegardé ({len(df_clean)} lignes brutes, {len(df_features)} lignes avec features)")
             
         except Exception as e:
             print(f"❌ Erreur avec {symbol}: {str(e)[:100]}...")
@@ -421,8 +447,8 @@ def collect_yfinance():
         
         print(f"\n✅ Collecte terminée avec succès!")
         print(f"   • {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)} actions récupérées")
-        print(f"   • ALL_CLEANED.csv: {len(combined_cleaned)} lignes")
-        print(f"   • ALL_FEATURES.csv: {len(combined_features)} lignes")
+        print(f"   • ALL_CLEANED.csv: {len(combined_cleaned)} lignes (toutes données depuis 2023)")
+        print(f"   • ALL_FEATURES.csv: {len(combined_features)} lignes (180 derniers jours)")
         
         return combined_cleaned, combined_features, data_report
     else:
