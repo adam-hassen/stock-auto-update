@@ -1,5 +1,5 @@
 {
-  "date_analyse": "2025-12-04 10:59:02",
+  "date_analyse": "2025-12-04 18:36:38",
   "total_anomalies": 237,
   "par_type": {
     "CASSURE_TENDANCE": 142,
@@ -40,8 +40,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 88632100,
-      "description": "Volume anormal: 88,632,100 vs moyenne 36,228,665",
-      "ratio_volume": 2.4464633106278555
+      "description": "Volume anormal: 88,632,100 vs moyenne 36,285,611",
+      "ratio_volume": 2.4426238486855336
     },
     {
       "symbol": "NVDA",
@@ -49,8 +49,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 320600300,
-      "description": "Volume anormal: 320,600,300 vs moyenne 187,052,905",
-      "ratio_volume": 1.7139552074740103
+      "description": "Volume anormal: 320,600,300 vs moyenne 187,065,297",
+      "ratio_volume": 1.713841668710332
     },
     {
       "symbol": "AMZN",
@@ -87,8 +87,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 85165100,
-      "description": "Volume anormal: 85,165,100 vs moyenne 36,228,665",
-      "ratio_volume": 2.3507656085769417
+      "description": "Volume anormal: 85,165,100 vs moyenne 36,285,611",
+      "ratio_volume": 2.347076333920649
     },
     {
       "symbol": "NVDA",
