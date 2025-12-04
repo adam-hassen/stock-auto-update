@@ -1,27 +1,39 @@
 # -*- coding: utf-8 -*-
 """
-PIPELINE COMPLÈTE : yFinance → Nettoyage → Features → Anomalies → 3 versions → Git
+PIPELINE COMPLÈTE - Version finale avec double repo
+yFinance → Nettoyage → Features → Anomalies → Git (repo principal + repo public)
 """
 
 import os
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 import yfinance as yf
 import subprocess
 import json
 import warnings
+import shutil
+import tempfile
 warnings.filterwarnings('ignore')
 
-# ====================== CONFIG ======================
-PUSH_TOKEN = os.getenv('PUSH_TOKEN')
+# ====================== CONFIGURATION ======================
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 DATA_FOLDER = "data"
 os.makedirs(DATA_FOLDER, exist_ok=True)
+
+# URLs des repositories - À MODIFIER POUR TON REPO PUBLIC
+GITHUB_REPOSITORY = os.getenv('GITHUB_REPOSITORY', 'ton-username/ton-repo-principal')
+REPO2_USERNAME = "Gasthorn"  # REMPLACE PAR TON USERNAME
+REPO2_REPONAME = "Projet4A_PredictionsBoursieres"  # REMPLACE PAR LE NOM DE TON REPO PUBLIC
+
+REPO1_URL = f"https://x-access-token:{GITHUB_TOKEN}@github.com/{GITHUB_REPOSITORY}.git"
+REPO2_PUBLIC_URL = f"https://github.com/{REPO2_USERNAME}/{REPO2_REPONAME}.git"
+REPO2_URL = f"https://x-access-token:{GITHUB_TOKEN}@github.com/{REPO2_USERNAME}/{REPO2_REPONAME}.git"
 
 # Symboles à tracker
 SYMBOLS = ["AAPL", "TSLA", "MSFT", "BTC-USD", "GOOGL", "NVDA", "AMZN", "META"]
 
-# ====================== FONCTION POUR CONVERTIR LES TYPES NUMPY ======================
+# ====================== FONCTIONS UTILITAIRES ======================
 def convert_numpy_types(obj):
     """Convertit les types NumPy en types Python natifs pour JSON"""
     if isinstance(obj, (np.integer, np.int64, np.int32)):
@@ -37,7 +49,23 @@ def convert_numpy_types(obj):
     else:
         return obj
 
-# ====================== DÉTECTION D'ANOMALIES AVANCÉE ======================
+def check_github_token():
+    """Vérifie si le token GitHub est disponible"""
+    if not GITHUB_TOKEN:
+        print("⚠️  GITHUB_TOKEN non trouvé dans l'environnement")
+        print("   En local: export GITHUB_TOKEN=ton_token_github")
+        print("   Sur GitHub Actions: configuré automatiquement")
+        return False
+    
+    # Vérification basique du format du token
+    if len(GITHUB_TOKEN) < 20:
+        print("⚠️  Token GitHub semble trop court")
+        return False
+    
+    print("✅ Token GitHub détecté")
+    return True
+
+# ====================== DÉTECTION D'ANOMALIES ======================
 def calculate_zscore(data):
     """Calcule le Z-score sans scipy"""
     if len(data) == 0:
@@ -53,7 +81,7 @@ def detect_anomalies_avancee(df, symbol):
     
     anomalies = []
     
-    # 1. ANOMALIES DE PRIX (Mouvements extrêmes)
+    # 1. ANOMALIES DE PRIX
     returns = df['Close'].pct_change().dropna()
     if len(returns) > 0:
         z_scores_returns = calculate_zscore(returns)
@@ -75,7 +103,7 @@ def detect_anomalies_avancee(df, symbol):
                     'prix_ce_jour': prix
                 })
     
-    # 2. ANOMALIES DE VOLUME (Volume anormalement élevé)
+    # 2. ANOMALIES DE VOLUME
     volume_data = df['Volume'].dropna()
     if len(volume_data) > 0:
         volume_z_scores = calculate_zscore(volume_data)
@@ -97,7 +125,7 @@ def detect_anomalies_avancee(df, symbol):
                     'ratio_volume': float(volume / volume_moyen)
                 })
     
-    # 3. GAPS DE PRIX (Ouverture très différente de clôture précédente)
+    # 3. GAPS DE PRIX
     df['overnight_gap'] = (df['Open'] - df['Close'].shift(1)) / df['Close'].shift(1)
     gap_data = df['overnight_gap'].dropna()
     if len(gap_data) > 0:
@@ -142,13 +170,11 @@ def detect_anomalies_avancee(df, symbol):
                         'periode': '10 jours'
                     })
     
-    # 5. CASSURES DE TENDANCE (Prix qui casse une MM importante)
+    # 5. CASSURES DE TENDANCE
     for window in [20, 50]:
         ma_col = f'MA_{window}'
         if ma_col in df.columns:
-            # Détection de cassure au-dessus
             cassure_hausse = (df['Close'] > df[ma_col]) & (df['Close'].shift(1) <= df[ma_col].shift(1))
-            # Détection de cassure en-dessous
             cassure_baisse = (df['Close'] < df[ma_col]) & (df['Close'].shift(1) >= df[ma_col].shift(1))
             
             cassure_idx = np.where(cassure_hausse | cassure_baisse)[0]
@@ -202,16 +228,13 @@ def sauvegarder_anomalies(anomalies_par_action):
         print("✅ Aucune anomalie détectée")
         return
     
-    # Combiner toutes les anomalies
     toutes_anomalies = []
     for symbol, anomalies in anomalies_par_action.items():
         toutes_anomalies.extend(anomalies)
     
-    # Sauvegarder en CSV
     df_anomalies = pd.DataFrame(toutes_anomalies)
     df_anomalies.to_csv(f"{DATA_FOLDER}/ANOMALIES_DETECTEES.csv", index=False)
     
-    # Préparer le résumé avec conversion des types
     resume_anomalies = {
         'date_analyse': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         'total_anomalies': len(toutes_anomalies),
@@ -223,7 +246,6 @@ def sauvegarder_anomalies(anomalies_par_action):
                                    reverse=True)[:10])
     }
     
-    # Sauvegarder le résumé en JSON
     with open(f"{DATA_FOLDER}/resume_anomalies.json", "w") as f:
         json.dump(resume_anomalies, f, indent=2, ensure_ascii=False)
     
@@ -236,17 +258,14 @@ def clean_data(df, symbol):
     """Nettoyage des données financières"""
     df = df.drop_duplicates(subset=['date']).sort_values('date').reset_index(drop=True)
     
-    # Gestion des valeurs manquantes
     numeric_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
     for col in numeric_cols:
         if col in df.columns:
             df[col] = df[col].fillna(method='ffill').fillna(method='bfill')
     
-    # Supprimer les données invalides
     df = df[df['Close'] > 0]
     df = df.dropna(subset=['Close'])
     
-    # Format standard
     df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m-%d')
     df['symbol'] = symbol
     
@@ -257,17 +276,12 @@ def create_essential_features(df, symbol):
     """Features les plus importantes seulement"""
     df = df.sort_values('date').reset_index(drop=True)
     
-    # 1. RETOURS
     df['daily_return'] = df['Close'].pct_change()
-    
-    # 2. VOLATILITÉ
     df['volatility_10'] = df['daily_return'].rolling(10).std()
     
-    # 3. MOYENNES MOBILES (seulement 3)
     for window in [5, 20, 50]:
         df[f'MA_{window}'] = df['Close'].rolling(window).mean()
     
-    # 4. RSI
     def calculate_rsi(prices, window=14):
         delta = prices.diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
@@ -277,51 +291,41 @@ def create_essential_features(df, symbol):
     
     df['RSI_14'] = calculate_rsi(df['Close'])
     
-    # 5. VOLUME
     df['volume_MA_5'] = df['Volume'].rolling(5).mean()
     df['volume_ratio'] = df['Volume'] / df['volume_MA_5']
     
-    # 6. TARGETS SIMPLES
     df['target_3_days'] = (df['Close'].shift(-3) / df['Close']) - 1
     df['target_direction'] = (df['target_3_days'] > 0).astype(int)
     
-    # Nettoyer les NaN
     df = df.dropna()
     
     print(f"✅ {symbol}: {len(df)} lignes avec features")
     return df
 
-# ====================== SAUVEGARDE DES 3 VERSIONS ======================
+# ====================== SAUVEGARDE DES VERSIONS ======================
 def save_all_versions(df_clean, df_features, symbol, all_cleaned_data, all_features_data):
     """Sauvegarde les 3 versions des données"""
     
-    # 1. Fichier individuel avec features
     df_features.to_csv(f"{DATA_FOLDER}/{symbol}.csv", index=False)
-    
-    # Ajouter aux données combinées
     all_cleaned_data.append(df_clean)
     all_features_data.append(df_features)
     
     print(f"💾 {symbol}.csv sauvegardé")
 
-# ====================== SAUVEGARDE DES FICHIERS COMBINÉS ======================
 def save_combined_files(all_cleaned_data, all_features_data):
     """Sauvegarde les fichiers combinés"""
     
-    # 2. Fichier combiné NETTOYÉ seulement
     combined_cleaned = pd.concat(all_cleaned_data, ignore_index=True)
     combined_cleaned.to_csv(f"{DATA_FOLDER}/ALL_CLEANED.csv", index=False)
     print("💾 ALL_CLEANED.csv sauvegardé")
     
-    # 3. Fichier combiné avec FEATURES
     combined_features = pd.concat(all_features_data, ignore_index=True)
     combined_features.to_csv(f"{DATA_FOLDER}/ALL_FEATURES.csv", index=False)
     print("💾 ALL_FEATURES.csv sauvegardé")
     
     return combined_cleaned, combined_features
 
-# ====================== RAPPORT SIMPLIFIÉ ======================
-def generate_simple_report(combined_cleaned, combined_features):
+def generate_simple_report(combined_cleaned):
     """Rapport simple des données disponibles"""
     print("📊 Génération du rapport...")
     
@@ -336,31 +340,34 @@ def generate_simple_report(combined_cleaned, combined_features):
                 'end_date': symbol_data['date'].max(),
                 'days_count': int(len(symbol_data)),
                 'last_price': float(symbol_data['Close'].iloc[-1]),
-                'last_volume': int(symbol_data['Volume'].iloc[-1])
+                'last_volume': int(symbol_data['Volume'].iloc[-1]),
+                'update_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             })
     
-    # Sauvegarder le rapport
     if report_data:
         report_df = pd.DataFrame(report_data)
         report_df.to_csv(f"{DATA_FOLDER}/data_report.csv", index=False)
         print("✅ Rapport généré")
+    
+    return report_df
 
-# ====================== COLLECTE YFINANCE CORRIGÉE ======================
+# ====================== COLLECTE YFINANCE ======================
 def collect_yfinance():
-    """Collecte principale des données yFinance - VERSION CORRIGÉE"""
+    """Collecte principale des données yFinance"""
     all_cleaned_data = []
     all_features_data = []
     anomalies_par_action = {}
     
     print("📈 Collecte des données yFinance...")
+    print(f"📅 Date du jour: {datetime.now().strftime('%Y-%m-%d')}")
     
     for symbol in SYMBOLS:
         try:
-            # COLLECTE CORRIGÉE - dates explicites pour éviter les données futures
+            print(f"\n🔍 Récupération {symbol}...")
             ticker = yf.Ticker(symbol)
             
-            # Utiliser des dates explicites au lieu de "period"
-            start_date = "2023-01-01"
+            # Récupérer les 180 derniers jours
+            start_date = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
             end_date = datetime.now().strftime('%Y-%m-%d')
             
             df = ticker.history(start=start_date, end=end_date)
@@ -369,17 +376,14 @@ def collect_yfinance():
                 print(f"⚠️  Aucune donnée pour {symbol}")
                 continue
             
-            # Vérification des dates collectées
             dates_collectees = df.index.strftime('%Y-%m-%d').tolist()
-            print(f"📅 {symbol}: {min(dates_collectees)} → {max(dates_collectees)} ({len(df)} jours)")
+            print(f"   📅 Période: {min(dates_collectees)} → {max(dates_collectees)} ({len(df)} jours)")
             
-            # Préparation des données
             df = df.reset_index()
             df['symbol'] = symbol
             df['date'] = df['Date'].dt.strftime('%Y-%m-%d')
             df = df[['date', 'Open', 'High', 'Low', 'Close', 'Volume', 'symbol']]
             
-            # FILTRE DE SÉCURITÉ - supprimer les dates futures
             today = datetime.now().strftime('%Y-%m-%d')
             df = df[df['date'] <= today]
             
@@ -387,112 +391,248 @@ def collect_yfinance():
                 print(f"⚠️  Aucune donnée valide après filtrage pour {symbol}")
                 continue
             
-            # Nettoyage
             df_clean = clean_data(df, symbol)
-            
-            # Features
             df_features = create_essential_features(df_clean.copy(), symbol)
             
-            # Détection des anomalies
-            print(f"🔍 Analyse des anomalies pour {symbol}...")
+            print(f"   🔍 Analyse des anomalies...")
             anomalies = detect_anomalies_avancee(df_features, symbol)
             anomalies_par_action[symbol] = anomalies
             
             if anomalies:
                 print(f"   ⚠️  {len(anomalies)} anomalies détectées")
             else:
-                print(f"   ✅ Aucune anomalie détectée")
+                print(f"   ✅ Aucune anomalie")
             
-            # Sauvegarde des 3 versions
             save_all_versions(df_clean, df_features, symbol, all_cleaned_data, all_features_data)
             
         except Exception as e:
-            print(f"❌ Erreur avec {symbol}: {e}")
+            print(f"❌ Erreur avec {symbol}: {str(e)[:100]}...")
     
-    # Sauvegarde des fichiers combinés
     if all_cleaned_data:
         combined_cleaned, combined_features = save_combined_files(all_cleaned_data, all_features_data)
-        
-        # Générer le rapport
-        generate_simple_report(combined_cleaned, combined_features)
-        
-        # Sauvegarde des anomalies
+        data_report = generate_simple_report(combined_cleaned)
         sauvegarder_anomalies(anomalies_par_action)
         
-        print(f"✅ Collecte terminée")
-        print(f"   • Fichiers individuels: {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])} actions")
-        print(f"   • Fichier combiné nettoyé: {len(combined_cleaned)} lignes")
-        print(f"   • Fichier combiné avec features: {len(combined_features)} lignes")
+        print(f"\n✅ Collecte terminée avec succès!")
+        print(f"   • {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)} actions récupérées")
+        print(f"   • ALL_CLEANED.csv: {len(combined_cleaned)} lignes")
+        print(f"   • ALL_FEATURES.csv: {len(combined_features)} lignes")
         
-        return combined_cleaned, combined_features
+        return combined_cleaned, combined_features, data_report
     else:
-        raise Exception("Aucune donnée collectée")
+        raise Exception("❌ Aucune donnée collectée")
 
-# ====================== GIT ACTIONS ======================
-def git_actions():
-    """Gère les actions Git"""
-    print("🔄 Actions Git...")
+# ====================== GIT ACTIONS POUR REPO PRINCIPAL ======================
+def git_actions_repo1():
+    """Gère les actions Git pour le repo principal"""
+    print("\n" + "="*50)
+    print("🔄 Actions Git - Repository principal...")
     
-    subprocess.run(["git", "config", "user.email", "github-actions@github.com"])
-    subprocess.run(["git", "config", "user.name", "GitHub Actions Bot"])
+    # Configurer Git
+    subprocess.run(["git", "config", "user.email", "github-actions@github.com"], 
+                   capture_output=True, text=True)
+    subprocess.run(["git", "config", "user.name", "GitHub Actions Bot"], 
+                   capture_output=True, text=True)
     
-    subprocess.run(["git", "add", DATA_FOLDER])
+    # Ajouter les fichiers data
+    subprocess.run(["git", "add", DATA_FOLDER + "/*"], 
+                   capture_output=True, text=True)
     
-    commit_msg = f"Update données + anomalies {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-    commit = subprocess.run(["git", "commit", "-m", commit_msg], 
-                          capture_output=True, text=True)
+    # Commit
+    commit_msg = f"📊 Update données financières {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    commit_result = subprocess.run(["git", "commit", "-m", commit_msg], 
+                                 capture_output=True, text=True)
     
-    if commit.returncode != 0 or "nothing to commit" in commit.stdout:
-        print("✅ Aucun changement à commiter")
+    if commit_result.returncode != 0 or "nothing to commit" in commit_result.stdout:
+        print("✅ Aucun changement dans le repo principal")
         return False
     
-    repo = os.getenv('GITHUB_REPOSITORY')
-    url = f"https://{PUSH_TOKEN}@github.com/{repo}.git"
-    push = subprocess.run(["git", "push", url, "HEAD:main"], capture_output=True, text=True)
+    # Push vers le repo principal
+    print("⬆️  Pushing vers le repo principal...")
+    push_result = subprocess.run(["git", "push", REPO1_URL, "HEAD:main"], 
+                               capture_output=True, text=True)
     
-    if push.returncode == 0:
-        print("✅ Push réussi !")
+    if push_result.returncode == 0:
+        print("✅ Push réussi sur le repo principal!")
         return True
     else:
-        print("❌ Erreur push:", push.stderr)
+        print(f"❌ Erreur push repo principal: {push_result.stderr[:200]}")
         return False
+
+# ====================== PUSH VERS REPO PUBLIC ======================
+def push_to_public_repo(combined_cleaned, combined_features, data_report):
+    """Push les fichiers CSV vers un repository public"""
+    print("\n" + "="*50)
+    print("🌐 Préparation du repository public...")
+    
+    if not check_github_token():
+        print("❌ Impossible de push sans token GitHub")
+        return False
+    
+    temp_dir = tempfile.mkdtemp()
+    original_dir = os.getcwd()
+    
+    try:
+        print(f"📁 Dossier temporaire: {temp_dir}")
+        os.chdir(temp_dir)
+        
+        # Initialiser un nouveau repo git
+        subprocess.run(["git", "init"], check=True, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "data-pipeline@github.com"], check=False)
+        subprocess.run(["git", "config", "user.name", "Financial Data Bot"], check=False)
+        
+        # Créer la structure
+        os.makedirs("data", exist_ok=True)
+        
+        # Sauvegarder les fichiers principaux
+        print("💾 Sauvegarde des fichiers dans le repo public...")
+        
+        if combined_cleaned is not None and not combined_cleaned.empty:
+            combined_cleaned.to_csv("data/ALL_CLEANED.csv", index=False)
+            print(f"   • ALL_CLEANED.csv: {len(combined_cleaned)} lignes")
+        
+        if combined_features is not None and not combined_features.empty:
+            combined_features.to_csv("data/ALL_FEATURES.csv", index=False)
+            print(f"   • ALL_FEATURES.csv: {len(combined_features)} lignes")
+        
+        if data_report is not None and not data_report.empty:
+            data_report.to_csv("data/data_report.csv", index=False)
+            print(f"   • data_report.csv: {len(data_report)} actions")
+        
+        # Ajouter un README
+        readme_content = f"""# 📊 Archive de Données Financières
+
+*Dernière mise à jour: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
+
+## 📁 Fichiers disponibles
+
+| Fichier | Description | Taille |
+|---------|-------------|--------|
+| `data/ALL_CLEANED.csv` | Données brutes nettoyées | {len(combined_cleaned) if combined_cleaned is not None else 0} lignes |
+| `data/ALL_FEATURES.csv` | Données avec indicateurs techniques | {len(combined_features) if combined_features is not None else 0} lignes |
+| `data/data_report.csv` | Rapport des données disponibles | {len(data_report) if data_report is not None else 0} actions |
+
+## 📈 Symboles suivis
+
+{', '.join(SYMBOLS)}
+
+## 🔍 Source des données
+
+Données collectées depuis Yahoo Finance via l'API yFinance.
+Mises à jour automatiques quotidiennes.
+
+## 📄 Structure des données
+
+Chaque fichier CSV contient les colonnes suivantes:
+- `date`: Date de la donnée (AAAA-MM-JJ)
+- `symbol`: Symbole de l'action/crypto
+- `Open`, `High`, `Low`, `Close`: Prix d'ouverture, plus haut, plus bas, clôture
+- `Volume`: Volume échangé
+- `daily_return`, `volatility_10`, `MA_*`, `RSI_14`: Indicateurs techniques
+
+## ⚠️ Avertissement
+
+Ces données sont fournies à titre informatif uniquement.
+Ne constitue pas un conseil en investissement.
+
+---
+
+*Généré automatiquement par [GitHub Actions](https://github.com/{GITHUB_REPOSITORY})*
+"""
+        
+        with open("README.md", "w", encoding="utf-8") as f:
+            f.write(readme_content)
+        
+        # Ajouter un .gitignore
+        with open(".gitignore", "w") as f:
+            f.write("*.pyc\n__pycache__/\n*.log\n.DS_Store\n")
+        
+        # Ajouter tous les fichiers
+        subprocess.run(["git", "add", "."], check=True, capture_output=True)
+        
+        # Commit
+        commit_msg = f"📈 Update données {datetime.now().strftime('%Y-%m-%d')}"
+        commit_result = subprocess.run(["git", "commit", "-m", commit_msg], 
+                                     capture_output=True, text=True)
+        
+        if commit_result.returncode != 0 and "nothing to commit" not in commit_result.stdout:
+            print(f"❌ Erreur commit: {commit_result.stderr}")
+            return False
+        
+        # Créer la branche main
+        subprocess.run(["git", "branch", "-M", "main"], check=True, capture_output=True)
+        
+        # Ajouter le remote
+        print(f"🔗 Connexion au repo: {REPO2_PUBLIC_URL}")
+        subprocess.run(["git", "remote", "add", "origin", REPO2_URL], 
+                      capture_output=True, text=True)
+        
+        # Force push (on écrase tout car c'est juste des données)
+        print("⬆️  Pushing vers le repo public...")
+        push_result = subprocess.run(["git", "push", "--force", "origin", "main"], 
+                                   capture_output=True, text=True)
+        
+        if push_result.returncode == 0:
+            print(f"✅ Push réussi sur le repo public!")
+            print(f"🔗 URL: {REPO2_PUBLIC_URL}")
+            return True
+        else:
+            print(f"❌ Erreur push: {push_result.stderr[:200]}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Erreur lors du push vers le repo public: {e}")
+        return False
+    finally:
+        os.chdir(original_dir)
+        try:
+            shutil.rmtree(temp_dir)
+        except:
+            pass
 
 # ====================== MAIN ======================
 if __name__ == "__main__":
-    print("🚀 DÉBUT PIPELINE COMPLÈTE AVEC ANOMALIES")
-    print("=" * 50)
+    print("🚀 DÉBUT PIPELINE COMPLÈTE - DOUBLE REPOSITORY")
+    print("="*60)
     
     try:
-        # Collecte et traitement des données
-        collect_yfinance()
+        # 1. Vérifier le token GitHub
+        check_github_token()
         
-        print("\n" + "=" * 50)
-        print("📦 FICHIERS CRÉÉS:")
-        print("   1. FICHIERS INDIVIDUELS (nettoyés + features):")
-        for symbol in SYMBOLS:
-            file_path = f"{DATA_FOLDER}/{symbol}.csv"
-            if os.path.exists(file_path):
-                df = pd.read_csv(file_path)
-                print(f"      • {symbol}.csv - {len(df)} lignes")
+        # 2. Collecter et traiter les données
+        combined_cleaned, combined_features, data_report = collect_yfinance()
         
-        print("   2. FICHIERS COMBINÉS:")
-        print(f"      • ALL_CLEANED.csv - données nettoyées seulement")
-        print(f"      • ALL_FEATURES.csv - données avec features")
-        print("   3. RAPPORTS ANOMALIES:")
-        print(f"      • ANOMALIES_DETECTEES.csv")
-        print(f"      • resume_anomalies.json")
-        print("   4. RAPPORT:")
-        print(f"      • data_report.csv")
+        # 3. Push vers le repo principal
+        repo1_success = git_actions_repo1()
         
-        # Actions Git
-        print("\n" + "=" * 50)
-        git_success = git_actions()
+        # 4. Push vers le repo public
+        repo2_success = push_to_public_repo(combined_cleaned, combined_features, data_report)
         
-        if git_success:
-            print("\n🎉 PIPELINE TERMINÉE AVEC SUCCÈS !")
+        # 5. Résumé final
+        print("\n" + "="*60)
+        print("🎉 RÉSUMÉ DE L'EXÉCUTION:")
+        print("-"*60)
+        
+        if repo1_success:
+            print("✅ REPO PRINCIPAL: Données mises à jour avec succès")
         else:
-            print("\nℹ️  Pipeline terminée (aucun changement)")
-            
+            print("ℹ️  REPO PRINCIPAL: Aucun changement détecté")
+        
+        if repo2_success:
+            print(f"✅ REPO PUBLIC: Données publiées avec succès")
+            print(f"   📍 {REPO2_PUBLIC_URL}")
+        else:
+            print("❌ REPO PUBLIC: Échec de la publication")
+        
+        print("\n📊 STATISTIQUES FINALES:")
+        print(f"   • Actions traitées: {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)}")
+        print(f"   • Données totales: {len(combined_cleaned) if combined_cleaned is not None else 0} lignes")
+        print(f"   • Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("="*60)
+        print("🏁 PIPELINE TERMINÉE")
+        
     except Exception as e:
         print(f"\n💥 ERREUR CRITIQUE: {e}")
-        raise
+        import traceback
+        traceback.print_exc()
+        exit(1)
