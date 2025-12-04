@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-PIPELINE COMPLÈTE - Version avec PUSH_TOKEN et branche Collecte-Des-Données
+PIPELINE COMPLÈTE - Version avec les bonnes branches
+Repo 1 (exécution): adam-hassen/stock-auto-update (main)
+Repo 2 (données): Gasthorn/Projet4A_PredictionsBoursieres (Collecte-Des-Données)
 """
 
 import os
@@ -16,23 +18,30 @@ import tempfile
 warnings.filterwarnings('ignore')
 
 # ====================== CONFIGURATION ======================
-PUSH_TOKEN = os.getenv('PUSH_TOKEN')  # Ton PAT personnel
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', PUSH_TOKEN)  # Fallback sur PUSH_TOKEN
+PUSH_TOKEN = os.getenv('PUSH_TOKEN')
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', PUSH_TOKEN)
 DATA_FOLDER = "data"
 os.makedirs(DATA_FOLDER, exist_ok=True)
 
-# BRANCHE À UTILISER
-BRANCH_NAME = "Collecte-Des-Données"
+# ====================== URLs CORRIGÉES ======================
+# REPO 1 : Où s'exécute le code (adam-hassen/stock-auto-update) - BRANCHE MAIN
+REPO1_OWNER = "adam-hassen"
+REPO1_NAME = "stock-auto-update"
+REPO1_BRANCH = "main"  # Branche main pour l'exécution
 
-# URLs des repositories - À MODIFIER
-GITHUB_REPOSITORY = os.getenv('GITHUB_REPOSITORY', 'ton-username/ton-repo-principal')
-REPO2_USERNAME = "Gasthorn"  # REMPLACE
-REPO2_REPONAME = "Projet4A_PredictionsBoursieres"  # REMPLACE
+# REPO 2 : Où tu veux stocker les données (Gasthorn/Projet4A_PredictionsBoursieres) - BRANCHE Collecte-Des-Données
+REPO2_OWNER = "Gasthorn"
+REPO2_NAME = "Projet4A_PredictionsBoursieres"
+REPO2_BRANCH = "Collecte-Des-Données"  # Ta branche spécifique
 
-# URLs avec PUSH_TOKEN
-REPO1_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{GITHUB_REPOSITORY}.git"
-REPO2_PUBLIC_URL = f"https://github.com/{REPO2_USERNAME}/{REPO2_REPONAME}.git"
-REPO2_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{REPO2_USERNAME}/{REPO2_REPONAME}.git"
+# URLs COMPLÈTES
+REPO1_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{REPO1_OWNER}/{REPO1_NAME}.git"
+REPO2_PUBLIC_URL = f"https://github.com/{REPO2_OWNER}/{REPO2_NAME}.git"
+REPO2_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{REPO2_OWNER}/{REPO2_NAME}.git"
+
+print(f"📦 Configuration repositories:")
+print(f"   • Repo exécution: {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
+print(f"   • Repo données: {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
 
 # Symboles à tracker
 SYMBOLS = ["AAPL", "TSLA", "MSFT", "BTC-USD", "GOOGL", "NVDA", "AMZN", "META"]
@@ -61,7 +70,6 @@ def check_token():
         return True
     else:
         print("⚠️  Aucun token détecté")
-        print("   Vérifie que PUSH_TOKEN est configuré")
         return False
 
 # ====================== DÉTECTION D'ANOMALIES ======================
@@ -365,7 +373,6 @@ def collect_yfinance():
             print(f"\n🔍 Récupération {symbol}...")
             ticker = yf.Ticker(symbol)
             
-            # Récupérer les 180 derniers jours
             start_date = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
             end_date = datetime.now().strftime('%Y-%m-%d')
             
@@ -421,11 +428,12 @@ def collect_yfinance():
     else:
         raise Exception("❌ Aucune donnée collectée")
 
-# ====================== GIT ACTIONS POUR REPO PRINCIPAL ======================
+# ====================== GIT ACTIONS POUR REPO D'EXÉCUTION ======================
 def git_actions_repo1():
-    """Gère les actions Git pour le repo principal sur la branche Collecte-Des-Données"""
+    """Gère les actions Git pour le repo d'exécution (adam-hassen/stock-auto-update) - MAIN"""
     print("\n" + "="*50)
-    print(f"🔄 Actions Git - Repository principal (branche: {BRANCH_NAME})...")
+    print(f"🔄 Actions Git - REPO D'EXÉCUTION...")
+    print(f"   📍 {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
     
     if not PUSH_TOKEN:
         print("❌ PUSH_TOKEN non configuré")
@@ -442,18 +450,10 @@ def git_actions_repo1():
                                 capture_output=True, text=True)
     current_branch = branch_check.stdout.strip()
     
-    if current_branch != BRANCH_NAME:
-        print(f"🔄 Switching de '{current_branch}' à '{BRANCH_NAME}'...")
-        
-        # Essayer de checkout la branche si elle existe
-        checkout_result = subprocess.run(["git", "checkout", BRANCH_NAME], 
-                                       capture_output=True, text=True)
-        
-        if checkout_result.returncode != 0:
-            # La branche n'existe pas, on la crée
-            print(f"📝 Création de la branche '{BRANCH_NAME}'...")
-            subprocess.run(["git", "checkout", "-b", BRANCH_NAME], 
-                         capture_output=True, text=True)
+    if current_branch != REPO1_BRANCH:
+        print(f"🔄 Switching de '{current_branch}' à '{REPO1_BRANCH}'...")
+        subprocess.run(["git", "checkout", REPO1_BRANCH], 
+                       capture_output=True, text=True)
     
     # Ajouter les fichiers data
     subprocess.run(["git", "add", DATA_FOLDER], 
@@ -464,7 +464,7 @@ def git_actions_repo1():
                                  capture_output=True, text=True)
     
     if not status_result.stdout.strip():
-        print("✅ Aucun changement dans le repo principal")
+        print("✅ Aucun changement dans le repo d'exécution")
         return False
     
     # Commit
@@ -476,29 +476,31 @@ def git_actions_repo1():
         print(f"⚠️  Erreur commit: {commit_result.stderr[:200]}")
         return False
     
-    # Push vers la branche spécifique
-    print(f"⬆️  Pushing vers {BRANCH_NAME}...")
-    push_result = subprocess.run(["git", "push", REPO1_URL, f"HEAD:{BRANCH_NAME}", "--force"], 
+    # Push vers la branche main
+    print(f"⬆️  Pushing vers {REPO1_BRANCH}...")
+    push_result = subprocess.run(["git", "push", REPO1_URL, f"HEAD:{REPO1_BRANCH}", "--force"], 
                                capture_output=True, text=True)
     
     if push_result.returncode == 0:
-        print(f"✅ Push réussi sur la branche {BRANCH_NAME}!")
+        print(f"✅ Push réussi sur la branche {REPO1_BRANCH}!")
+        print(f"   🔗 https://github.com/{REPO1_OWNER}/{REPO1_NAME}/tree/{REPO1_BRANCH}")
         return True
     else:
         print(f"❌ Erreur push: {push_result.stderr[:200]}")
         return False
 
-# ====================== PUSH VERS REPO PUBLIC ======================
-def push_to_public_repo(combined_cleaned, combined_features, data_report):
-    """Push les fichiers CSV vers un repository public"""
+# ====================== PUSH VERS REPO DE DONNÉES (sur branche Collecte-Des-Données) ======================
+def push_to_data_repo(combined_cleaned, combined_features, data_report):
+    """Push les fichiers CSV vers le repo de données sur la branche Collecte-Des-Données"""
     print("\n" + "="*50)
-    print("🌐 Préparation du repository public...")
+    print("🌐 Préparation du REPO DE DONNÉES...")
+    print(f"   📍 {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
     
     if not PUSH_TOKEN:
-        print("❌ PUSH_TOKEN non configuré pour le repo public")
+        print("❌ PUSH_TOKEN non configuré")
         return False
     
-    print(f"✅ Token disponible (PUSH_TOKEN)")
+    print(f"✅ Token disponible")
     
     temp_dir = tempfile.mkdtemp()
     original_dir = os.getcwd()
@@ -516,7 +518,7 @@ def push_to_public_repo(combined_cleaned, combined_features, data_report):
         os.makedirs("data", exist_ok=True)
         
         # Sauvegarder les fichiers principaux
-        print("💾 Sauvegarde des fichiers dans le repo public...")
+        print("💾 Sauvegarde des fichiers...")
         
         if combined_cleaned is not None and not combined_cleaned.empty:
             combined_cleaned.to_csv("data/ALL_CLEANED.csv", index=False)
@@ -530,12 +532,14 @@ def push_to_public_repo(combined_cleaned, combined_features, data_report):
             data_report.to_csv("data/data_report.csv", index=False)
             print(f"   • data_report.csv: {len(data_report)} actions")
         
-        # Ajouter un README
-        readme_content = f"""# 📊 Archive de Données Financières
+        # Ajouter un README spécifique
+        readme_content = f"""# 📊 Données Financières - Projet 4A
 
 *Dernière mise à jour: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
 
 ## 📁 Fichiers disponibles
+
+Cette branche (`{REPO2_BRANCH}`) contient les données financières collectées automatiquement.
 
 | Fichier | Description | Taille |
 |---------|-------------|--------|
@@ -550,16 +554,17 @@ def push_to_public_repo(combined_cleaned, combined_features, data_report):
 ## 🔍 Source des données
 
 Données collectées depuis Yahoo Finance via l'API yFinance.
-Mises à jour automatiques quotidiennes.
+Mises à jour automatiques quotidiennes à 20h (heure française).
 
-## 📄 Structure des données
+## 📊 Indicateurs inclus
 
-Chaque fichier CSV contient les colonnes suivantes:
-- `date`: Date de la donnée (AAAA-MM-JJ)
-- `symbol`: Symbole de l'action/crypto
-- `Open`, `High`, `Low`, `Close`: Prix d'ouverture, plus haut, plus bas, clôture
-- `Volume`: Volume échangé
-- `daily_return`, `volatility_10`, `MA_*`, `RSI_14`: Indicateurs techniques
+Pour chaque symbole:
+- Prix (Open, High, Low, Close, Volume)
+- Retours journaliers
+- Volatilité (10 jours)
+- Moyennes mobiles (5, 20, 50 jours)
+- RSI (14 jours)
+- Ratio de volume
 
 ## ⚠️ Avertissement
 
@@ -568,7 +573,7 @@ Ne constitue pas un conseil en investissement.
 
 ---
 
-*Généré automatiquement par [GitHub Actions](https://github.com/{GITHUB_REPOSITORY})*
+*Généré automatiquement par GitHub Actions depuis [stock-auto-update](https://github.com/{REPO1_OWNER}/{REPO1_NAME})*
 """
         
         with open("README.md", "w", encoding="utf-8") as f:
@@ -582,7 +587,7 @@ Ne constitue pas un conseil en investissement.
         subprocess.run(["git", "add", "."], check=True, capture_output=True)
         
         # Commit
-        commit_msg = f"📈 Update données {datetime.now().strftime('%Y-%m-%d')}"
+        commit_msg = f"📈 Mise à jour données {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         commit_result = subprocess.run(["git", "commit", "-m", commit_msg], 
                                      capture_output=True, text=True)
         
@@ -590,34 +595,33 @@ Ne constitue pas un conseil en investissement.
             print(f"❌ Erreur commit: {commit_result.stderr}")
             return False
         
-        # Créer la branche main
-        subprocess.run(["git", "branch", "-M", "main"], check=True, capture_output=True)
-        
-        # Ajouter le remote AVEC LE PUSH_TOKEN
-        print(f"🔗 Connexion au repo: {REPO2_PUBLIC_URL}")
+        # Créer la branche Collecte-Des-Données (pas main!)
+        subprocess.run(["git", "branch", "-M", REPO2_BRANCH], check=True, capture_output=True)
         
         # Ajouter le remote
+        print(f"🔗 Connexion au repo {REPO2_OWNER}/{REPO2_NAME}...")
+        
         remote_add = subprocess.run(["git", "remote", "add", "origin", REPO2_URL], 
                                   capture_output=True, text=True)
         
         if remote_add.returncode != 0:
-            print(f"⚠️  Remote déjà configuré, on continue...")
+            print(f"⚠️  Remote déjà configuré")
         
-        # Force push
-        print("⬆️  Pushing vers le repo public...")
-        push_result = subprocess.run(["git", "push", "--force", "origin", "main"], 
+        # Force push vers la branche Collecte-Des-Données
+        print(f"⬆️  Pushing vers la branche {REPO2_BRANCH}...")
+        push_result = subprocess.run(["git", "push", "--force", "origin", REPO2_BRANCH], 
                                    capture_output=True, text=True)
         
         if push_result.returncode == 0:
-            print(f"✅ Push réussi sur le repo public!")
-            print(f"🔗 URL: {REPO2_PUBLIC_URL}")
+            print(f"✅ Push réussi sur la branche {REPO2_BRANCH}!")
+            print(f"🔗 {REPO2_PUBLIC_URL}/tree/{REPO2_BRANCH}")
             return True
         else:
             print(f"❌ Erreur push: {push_result.stderr[:200]}")
             return False
             
     except Exception as e:
-        print(f"❌ Erreur lors du push vers le repo public: {e}")
+        print(f"❌ Erreur: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -632,9 +636,10 @@ Ne constitue pas un conseil en investissement.
 if __name__ == "__main__":
     print("🚀 DÉBUT PIPELINE COMPLÈTE")
     print("="*60)
-    print(f"📌 Branche cible: {BRANCH_NAME}")
-    print(f"🔑 Token utilisé: {'PUSH_TOKEN' if PUSH_TOKEN else 'AUCUN'}")
-    print(f"🌐 Repo public: {REPO2_PUBLIC_URL}")
+    print(f"🔑 Token utilisé: {'✅ PUSH_TOKEN' if PUSH_TOKEN else '❌ AUCUN'}")
+    print(f"📦 Repo exécution: {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
+    print(f"🌐 Repo données: {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
+    print("="*60)
     
     try:
         # 1. Vérifier le token
@@ -643,21 +648,21 @@ if __name__ == "__main__":
         # 2. Collecter et traiter les données
         combined_cleaned, combined_features, data_report = collect_yfinance()
         
-        # 3. Push vers le repo principal (seulement si on a un token)
+        # 3. Push vers le repo d'exécution (main)
         repo1_success = False
         if has_token:
             repo1_success = git_actions_repo1()
         else:
             print("\n" + "="*50)
-            print("⚠️  Pas de token, skip du repo principal")
+            print("⚠️  Pas de token, skip du repo d'exécution")
         
-        # 4. Push vers le repo public (seulement si on a un token)
+        # 4. Push vers le repo de données (Collecte-Des-Données)
         repo2_success = False
         if has_token:
-            repo2_success = push_to_public_repo(combined_cleaned, combined_features, data_report)
+            repo2_success = push_to_data_repo(combined_cleaned, combined_features, data_report)
         else:
             print("\n" + "="*50)
-            print("⚠️  Pas de token, skip du repo public")
+            print("⚠️  Pas de token, skip du repo de données")
         
         # 5. Résumé final
         print("\n" + "="*60)
@@ -665,24 +670,25 @@ if __name__ == "__main__":
         print("-"*60)
         
         if repo1_success:
-            print(f"✅ REPO PRINCIPAL: Données mises à jour sur '{BRANCH_NAME}'")
+            print(f"✅ REPO EXÉCUTION: Code + données mis à jour")
+            print(f"   📍 https://github.com/{REPO1_OWNER}/{REPO1_NAME}/tree/{REPO1_BRANCH}")
         elif has_token:
-            print("ℹ️  REPO PRINCIPAL: Aucun changement détecté")
+            print("ℹ️  REPO EXÉCUTION: Aucun changement détecté")
         else:
-            print("⚠️  REPO PRINCIPAL: Skippé (pas de token)")
+            print("⚠️  REPO EXÉCUTION: Skippé (pas de token)")
         
         if repo2_success:
-            print(f"✅ REPO PUBLIC: Données publiées avec succès")
-            print(f"   📍 {REPO2_PUBLIC_URL}")
+            print(f"✅ REPO DONNÉES: Données publiées sur '{REPO2_BRANCH}'")
+            print(f"   📍 {REPO2_PUBLIC_URL}/tree/{REPO2_BRANCH}")
         elif has_token:
-            print("❌ REPO PUBLIC: Échec de la publication")
+            print("❌ REPO DONNÉES: Échec de la publication")
         else:
-            print("⚠️  REPO PUBLIC: Skippé (pas de token)")
+            print("⚠️  REPO DONNÉES: Skippé (pas de token)")
         
         print("\n📊 STATISTIQUES FINALES:")
         print(f"   • Actions traitées: {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)}")
         print(f"   • Données totales: {len(combined_cleaned) if combined_cleaned is not None else 0} lignes")
-        print(f"   • Fichiers générés: ALL_CLEANED.csv, ALL_FEATURES.csv, data_report.csv")
+        print(f"   • Anomalies détectées: Voir {DATA_FOLDER}/ANOMALIES_DETECTEES.csv")
         print(f"   • Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("="*60)
         print("🏁 PIPELINE TERMINÉE")
