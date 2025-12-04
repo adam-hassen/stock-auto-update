@@ -591,12 +591,6 @@ Pour chaque symbole:
 - Moyennes mobiles (5, 20, 50 jours)
 - RSI (14 jours)
 - Ratio de volume
-
-## ⚠️ Avertissement
-
-Ces données sont fournies à titre informatif uniquement.
-Ne constitue pas un conseil en investissement.
-
 ---
 
 *Généré automatiquement par GitHub Actions depuis [stock-auto-update](https://github.com/{REPO1_OWNER}/{REPO1_NAME})*
