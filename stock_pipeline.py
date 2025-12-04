@@ -26,8 +26,8 @@ BRANCH_NAME = "Collecte-Des-Données"
 
 # URLs des repositories - À MODIFIER
 GITHUB_REPOSITORY = os.getenv('GITHUB_REPOSITORY', 'ton-username/ton-repo-principal')
-REPO2_USERNAME = "ton-username"  # REMPLACE
-REPO2_REPONAME = "finance-data-public"  # REMPLACE
+REPO2_USERNAME = "Gasthorn"  # REMPLACE
+REPO2_REPONAME = "Projet4A_PredictionsBoursieres"  # REMPLACE
 
 # URLs avec PUSH_TOKEN
 REPO1_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{GITHUB_REPOSITORY}.git"
