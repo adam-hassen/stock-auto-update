@@ -1,20 +1,20 @@
 {
-  "date_analyse": "2025-12-04 18:36:38",
-  "total_anomalies": 237,
+  "date_analyse": "2025-12-05 18:31:04",
+  "total_anomalies": 239,
   "par_type": {
-    "CASSURE_TENDANCE": 142,
+    "CASSURE_TENDANCE": 143,
     "RSI_EXTREME": 47,
     "VOLUME_ANORMAL": 22,
     "GAP_OUVERTURE": 16,
-    "MOUVEMENT_EXTREME": 8,
+    "MOUVEMENT_EXTREME": 9,
     "VOLATILITE_EXTREME": 2
   },
   "par_severite": {
-    "MOYENNE": 227,
-    "HAUTE": 10
+    "MOYENNE": 228,
+    "HAUTE": 11
   },
   "par_action": {
-    "BTC-USD": 39,
+    "BTC-USD": 41,
     "AMZN": 35,
     "GOOGL": 31,
     "TSLA": 30,
@@ -24,6 +24,25 @@
     "AAPL": 22
   },
   "anomalies_recentes": [
+    {
+      "symbol": "BTC-USD",
+      "date": "2025-12-02",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 91350.203125,
+      "MA_20": 90537.975390625
+    },
+    {
+      "symbol": "BTC-USD",
+      "date": "2025-12-01",
+      "type": "MOUVEMENT_EXTREME",
+      "severite": "HAUTE",
+      "valeur": 5.825464938016567,
+      "description": "Mouvement de prix extrême: 5.83%",
+      "prix_ce_jour": 86321.5703125
+    },
     {
       "symbol": "TSLA",
       "date": "2025-11-28",
@@ -40,8 +59,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 88632100,
-      "description": "Volume anormal: 88,632,100 vs moyenne 36,285,611",
-      "ratio_volume": 2.4426238486855336
+      "description": "Volume anormal: 88,632,100 vs moyenne 36,280,715",
+      "ratio_volume": 2.442953523799537
     },
     {
       "symbol": "NVDA",
@@ -49,8 +68,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 320600300,
-      "description": "Volume anormal: 320,600,300 vs moyenne 187,065,297",
-      "ratio_volume": 1.713841668710332
+      "description": "Volume anormal: 320,600,300 vs moyenne 187,014,920",
+      "ratio_volume": 1.714303325214754
     },
     {
       "symbol": "AMZN",
@@ -87,36 +106,18 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 85165100,
-      "description": "Volume anormal: 85,165,100 vs moyenne 36,285,611",
-      "ratio_volume": 2.347076333920649
+      "description": "Volume anormal: 85,165,100 vs moyenne 36,280,715",
+      "ratio_volume": 2.347393113214512
     },
     {
       "symbol": "NVDA",
       "date": "2025-11-24",
       "type": "GAP_OUVERTURE",
       "severite": "MOYENNE",
-      "valeur": 0.3410110653514264,
+      "valeur": 0.34101439775593306,
       "description": "Gap d'ouverture: 0.34%",
-      "ouverture": 179.49000549316406,
-      "cloture_precedente": 178.8800048828125
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2025-11-23",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": 18.892325290453414,
-      "description": "RSI en SURVENDE: 18.9",
-      "niveau": "SURVENDE"
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2025-11-22",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": 19.67584313967845,
-      "description": "RSI en SURVENDE: 19.7",
-      "niveau": "SURVENDE"
+      "ouverture": 179.48001348627363,
+      "cloture_precedente": 178.8700408935547
     }
   ]
 }
