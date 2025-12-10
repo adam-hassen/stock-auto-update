@@ -1,29 +1,39 @@
 {
-  "date_analyse": "2025-12-09 18:31:31",
-  "total_anomalies": 238,
+  "date_analyse": "2025-12-10 18:34:31",
+  "total_anomalies": 234,
   "par_type": {
-    "CASSURE_TENDANCE": 140,
-    "RSI_EXTREME": 45,
+    "CASSURE_TENDANCE": 137,
+    "RSI_EXTREME": 46,
     "VOLUME_ANORMAL": 23,
     "GAP_OUVERTURE": 20,
-    "MOUVEMENT_EXTREME": 6,
-    "VOLATILITE_EXTREME": 4
+    "MOUVEMENT_EXTREME": 5,
+    "VOLATILITE_EXTREME": 3
   },
   "par_severite": {
-    "MOYENNE": 228,
-    "HAUTE": 10
+    "MOYENNE": 226,
+    "HAUTE": 8
   },
   "par_action": {
-    "BTC-USD": 43,
-    "AMZN": 34,
-    "GOOGL": 30,
-    "TSLA": 30,
-    "META": 29,
+    "BTC-USD": 44,
+    "AMZN": 33,
+    "GOOGL": 31,
+    "TSLA": 29,
+    "META": 28,
     "MSFT": 25,
     "NVDA": 24,
-    "AAPL": 23
+    "AAPL": 20
   },
   "anomalies_recentes": [
+    {
+      "symbol": "BTC-USD",
+      "date": "2025-12-07",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 90405.640625,
+      "MA_20": 89478.96640625
+    },
     {
       "symbol": "BTC-USD",
       "date": "2025-12-05",
@@ -33,6 +43,15 @@
       "description": "Cassure BAISSE de la MM20",
       "prix": 89387.7578125,
       "MA_20": 89808.61328125
+    },
+    {
+      "symbol": "GOOGL",
+      "date": "2025-12-05",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": 80.0509450736662,
+      "description": "RSI en SURACHAT: 80.1",
+      "niveau": "SURACHAT"
     },
     {
       "symbol": "TSLA",
@@ -102,24 +121,6 @@
       "description": "Cassure HAUSSE de la MM20",
       "prix": 430.1700134277344,
       "MA_20": 426.1445007324219
-    },
-    {
-      "symbol": "GOOGL",
-      "date": "2025-11-25",
-      "type": "VOLUME_ANORMAL",
-      "severite": "MOYENNE",
-      "valeur": 88632100,
-      "description": "Volume anormal: 88,632,100 vs moyenne 36,228,231",
-      "ratio_volume": 2.446492599453227
-    },
-    {
-      "symbol": "NVDA",
-      "date": "2025-11-25",
-      "type": "VOLUME_ANORMAL",
-      "severite": "MOYENNE",
-      "valeur": 320600300,
-      "description": "Volume anormal: 320,600,300 vs moyenne 186,524,590",
-      "ratio_volume": 1.7188098405655066
     }
   ]
 }
