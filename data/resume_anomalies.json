@@ -1,29 +1,59 @@
 {
-  "date_analyse": "2025-12-10 18:34:31",
-  "total_anomalies": 234,
+  "date_analyse": "2025-12-11 18:34:56",
+  "total_anomalies": 238,
   "par_type": {
-    "CASSURE_TENDANCE": 137,
+    "CASSURE_TENDANCE": 140,
     "RSI_EXTREME": 46,
     "VOLUME_ANORMAL": 23,
     "GAP_OUVERTURE": 20,
     "MOUVEMENT_EXTREME": 5,
-    "VOLATILITE_EXTREME": 3
+    "VOLATILITE_EXTREME": 4
   },
   "par_severite": {
-    "MOYENNE": 226,
-    "HAUTE": 8
+    "MOYENNE": 229,
+    "HAUTE": 9
   },
   "par_action": {
     "BTC-USD": 44,
-    "AMZN": 33,
+    "AMZN": 34,
     "GOOGL": 31,
     "TSLA": 29,
-    "META": 28,
-    "MSFT": 25,
-    "NVDA": 24,
+    "META": 29,
+    "MSFT": 26,
+    "NVDA": 25,
     "AAPL": 20
   },
   "anomalies_recentes": [
+    {
+      "symbol": "MSFT",
+      "date": "2025-12-08",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 491.0199890136719,
+      "MA_20": 490.435285949707
+    },
+    {
+      "symbol": "NVDA",
+      "date": "2025-12-08",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 185.5500030517578,
+      "MA_20": 184.34027252197265
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2025-12-08",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure BAISSE de la MM50",
+      "prix": 226.88999938964844,
+      "MA_50": 228.53240051269532
+    },
     {
       "symbol": "BTC-USD",
       "date": "2025-12-07",
@@ -92,35 +122,6 @@
       "description": "Gap d'ouverture: -0.00%",
       "ouverture": 486.7200012207031,
       "cloture_precedente": 486.739990234375
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2025-12-02",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure HAUSSE de la MM20",
-      "prix": 91350.203125,
-      "MA_20": 90537.975390625
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2025-12-01",
-      "type": "MOUVEMENT_EXTREME",
-      "severite": "HAUTE",
-      "valeur": 5.825464938016567,
-      "description": "Mouvement de prix extrême: 5.83%",
-      "prix_ce_jour": 86321.5703125
-    },
-    {
-      "symbol": "TSLA",
-      "date": "2025-11-28",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure HAUSSE de la MM20",
-      "prix": 430.1700134277344,
-      "MA_20": 426.1445007324219
     }
   ]
 }
