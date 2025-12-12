@@ -1,21 +1,21 @@
 {
-  "date_analyse": "2025-12-11 18:34:56",
-  "total_anomalies": 238,
+  "date_analyse": "2025-12-12 18:35:38",
+  "total_anomalies": 239,
   "par_type": {
     "CASSURE_TENDANCE": 140,
     "RSI_EXTREME": 46,
     "VOLUME_ANORMAL": 23,
     "GAP_OUVERTURE": 20,
-    "MOUVEMENT_EXTREME": 5,
-    "VOLATILITE_EXTREME": 4
+    "VOLATILITE_EXTREME": 5,
+    "MOUVEMENT_EXTREME": 5
   },
   "par_severite": {
     "MOYENNE": 229,
-    "HAUTE": 9
+    "HAUTE": 10
   },
   "par_action": {
     "BTC-USD": 44,
-    "AMZN": 34,
+    "AMZN": 35,
     "GOOGL": 31,
     "TSLA": 29,
     "META": 29,
