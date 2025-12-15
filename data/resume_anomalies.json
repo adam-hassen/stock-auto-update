@@ -1,29 +1,39 @@
 {
-  "date_analyse": "2025-12-12 18:35:38",
-  "total_anomalies": 239,
+  "date_analyse": "2025-12-15 18:36:16",
+  "total_anomalies": 234,
   "par_type": {
     "CASSURE_TENDANCE": 140,
-    "RSI_EXTREME": 46,
-    "VOLUME_ANORMAL": 23,
-    "GAP_OUVERTURE": 20,
-    "VOLATILITE_EXTREME": 5,
-    "MOUVEMENT_EXTREME": 5
+    "RSI_EXTREME": 45,
+    "VOLUME_ANORMAL": 21,
+    "GAP_OUVERTURE": 19,
+    "MOUVEMENT_EXTREME": 6,
+    "VOLATILITE_EXTREME": 3
   },
   "par_severite": {
-    "MOYENNE": 229,
-    "HAUTE": 10
+    "MOYENNE": 225,
+    "HAUTE": 9
   },
   "par_action": {
-    "BTC-USD": 44,
-    "AMZN": 35,
+    "BTC-USD": 43,
+    "AMZN": 34,
     "GOOGL": 31,
-    "TSLA": 29,
-    "META": 29,
+    "TSLA": 28,
+    "META": 28,
     "MSFT": 26,
     "NVDA": 25,
-    "AAPL": 20
+    "AAPL": 19
   },
   "anomalies_recentes": [
+    {
+      "symbol": "BTC-USD",
+      "date": "2025-12-12",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure BAISSE de la MM20",
+      "prix": 90270.4140625,
+      "MA_20": 90346.40625
+    },
     {
       "symbol": "MSFT",
       "date": "2025-12-08",
@@ -112,16 +122,6 @@
       "description": "Gap d'ouverture: -0.42%",
       "ouverture": 644.4099731445312,
       "cloture_precedente": 647.0999755859375
-    },
-    {
-      "symbol": "MSFT",
-      "date": "2025-12-02",
-      "type": "GAP_OUVERTURE",
-      "severite": "MOYENNE",
-      "valeur": -0.004106712839076545,
-      "description": "Gap d'ouverture: -0.00%",
-      "ouverture": 486.7200012207031,
-      "cloture_precedente": 486.739990234375
     }
   ]
 }
