@@ -1,8 +1,8 @@
 {
-  "date_analyse": "2025-12-17 18:36:33",
-  "total_anomalies": 241,
+  "date_analyse": "2025-12-18 18:35:28",
+  "total_anomalies": 243,
   "par_type": {
-    "CASSURE_TENDANCE": 146,
+    "CASSURE_TENDANCE": 148,
     "RSI_EXTREME": 46,
     "VOLUME_ANORMAL": 20,
     "GAP_OUVERTURE": 19,
@@ -10,20 +10,40 @@
     "VOLATILITE_EXTREME": 4
   },
   "par_severite": {
-    "MOYENNE": 231,
+    "MOYENNE": 233,
     "HAUTE": 10
   },
   "par_action": {
     "BTC-USD": 43,
     "AMZN": 38,
-    "GOOGL": 31,
+    "GOOGL": 32,
     "TSLA": 29,
     "META": 29,
     "MSFT": 27,
     "NVDA": 26,
-    "AAPL": 18
+    "AAPL": 19
   },
   "anomalies_recentes": [
+    {
+      "symbol": "AAPL",
+      "date": "2025-12-15",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure BAISSE de la MM20",
+      "prix": 274.1099853515625,
+      "MA_20": 276.3839996337891
+    },
+    {
+      "symbol": "GOOGL",
+      "date": "2025-12-15",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure BAISSE de la MM20",
+      "prix": 308.2200012207031,
+      "MA_20": 310.0357192993164
+    },
     {
       "symbol": "TSLA",
       "date": "2025-12-12",
@@ -102,26 +122,6 @@
       "description": "Cassure HAUSSE de la MM50",
       "prix": 231.77999877929688,
       "MA_50": 228.89160034179687
-    },
-    {
-      "symbol": "MSFT",
-      "date": "2025-12-08",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure HAUSSE de la MM20",
-      "prix": 491.0199890136719,
-      "MA_20": 490.435285949707
-    },
-    {
-      "symbol": "NVDA",
-      "date": "2025-12-08",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure HAUSSE de la MM20",
-      "prix": 185.5500030517578,
-      "MA_20": 184.34027252197265
     }
   ]
 }
