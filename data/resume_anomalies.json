@@ -1,25 +1,25 @@
 {
-  "date_analyse": "2025-12-19 18:33:35",
-  "total_anomalies": 246,
+  "date_analyse": "2025-12-22 18:34:51",
+  "total_anomalies": 241,
   "par_type": {
-    "CASSURE_TENDANCE": 148,
+    "CASSURE_TENDANCE": 147,
     "RSI_EXTREME": 47,
-    "GAP_OUVERTURE": 20,
     "VOLUME_ANORMAL": 20,
-    "MOUVEMENT_EXTREME": 7,
-    "VOLATILITE_EXTREME": 4
+    "GAP_OUVERTURE": 18,
+    "MOUVEMENT_EXTREME": 6,
+    "VOLATILITE_EXTREME": 3
   },
   "par_severite": {
-    "MOYENNE": 235,
-    "HAUTE": 11
+    "MOYENNE": 232,
+    "HAUTE": 9
   },
   "par_action": {
     "BTC-USD": 43,
-    "AMZN": 38,
-    "GOOGL": 33,
-    "TSLA": 31,
-    "META": 29,
-    "MSFT": 27,
+    "AMZN": 37,
+    "GOOGL": 32,
+    "TSLA": 30,
+    "META": 28,
+    "MSFT": 26,
     "NVDA": 26,
     "AAPL": 19
   },
@@ -29,8 +29,8 @@
       "date": "2025-12-16",
       "type": "RSI_EXTREME",
       "severite": "MOYENNE",
-      "valeur": 81.64499603930743,
-      "description": "RSI en SURACHAT: 81.6",
+      "valeur": 81.38021424248657,
+      "description": "RSI en SURACHAT: 81.4",
       "niveau": "SURACHAT"
     },
     {
@@ -44,15 +44,6 @@
       "MA_20": 276.3839996337891
     },
     {
-      "symbol": "TSLA",
-      "date": "2025-12-15",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": 83.41001060269762,
-      "description": "RSI en SURACHAT: 83.4",
-      "niveau": "SURACHAT"
-    },
-    {
       "symbol": "GOOGL",
       "date": "2025-12-15",
       "type": "CASSURE_TENDANCE",
@@ -61,6 +52,15 @@
       "description": "Cassure BAISSE de la MM20",
       "prix": 308.2200012207031,
       "MA_20": 310.0357192993164
+    },
+    {
+      "symbol": "TSLA",
+      "date": "2025-12-12",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": 80.93716648805172,
+      "description": "RSI en SURACHAT: 80.9",
+      "niveau": "SURACHAT"
     },
     {
       "symbol": "BTC-USD",
@@ -93,16 +93,6 @@
       "MA_50": 229.1602001953125
     },
     {
-      "symbol": "TSLA",
-      "date": "2025-12-11",
-      "type": "GAP_OUVERTURE",
-      "severite": "MOYENNE",
-      "valeur": -0.5537711667739463,
-      "description": "Gap d'ouverture: -0.55%",
-      "ouverture": 448.95001220703125,
-      "cloture_precedente": 451.45001220703125
-    },
-    {
       "symbol": "NVDA",
       "date": "2025-12-11",
       "type": "CASSURE_TENDANCE",
@@ -121,6 +111,16 @@
       "description": "Cassure BAISSE de la MM20",
       "prix": 478.55999755859375,
       "MA_20": 488.32506408691404
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2025-12-10",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 231.77999877929688,
+      "MA_20": 229.83250045776367
     }
   ]
 }
