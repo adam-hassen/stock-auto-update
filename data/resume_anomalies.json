@@ -1,37 +1,56 @@
 {
-  "date_analyse": "2025-12-25 18:33:08",
-  "total_anomalies": 244,
+  "date_analyse": "2025-12-26 18:33:20",
+  "total_anomalies": 248,
   "par_type": {
-    "CASSURE_TENDANCE": 148,
-    "RSI_EXTREME": 47,
+    "CASSURE_TENDANCE": 149,
+    "RSI_EXTREME": 48,
     "VOLUME_ANORMAL": 22,
-    "GAP_OUVERTURE": 18,
+    "GAP_OUVERTURE": 19,
     "MOUVEMENT_EXTREME": 6,
-    "VOLATILITE_EXTREME": 3
+    "VOLATILITE_EXTREME": 4
   },
   "par_severite": {
-    "MOYENNE": 235,
-    "HAUTE": 9
+    "MOYENNE": 238,
+    "HAUTE": 10
   },
   "par_action": {
     "BTC-USD": 43,
     "AMZN": 37,
     "GOOGL": 32,
+    "META": 32,
     "TSLA": 30,
-    "META": 30,
-    "MSFT": 26,
+    "MSFT": 27,
     "NVDA": 26,
-    "AAPL": 20
+    "AAPL": 21
   },
   "anomalies_recentes": [
+    {
+      "symbol": "AAPL",
+      "date": "2025-12-22",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": 17.726949762576822,
+      "description": "RSI en SURVENDE: 17.7",
+      "niveau": "SURVENDE"
+    },
+    {
+      "symbol": "META",
+      "date": "2025-12-22",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure HAUSSE de la MM50",
+      "prix": 661.5,
+      "MA_50": 659.8492932128906
+    },
     {
       "symbol": "AAPL",
       "date": "2025-12-19",
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 144632000,
-      "description": "Volume anormal: 144,632,000 vs moyenne 49,828,360",
-      "ratio_volume": 2.902604072605747
+      "description": "Volume anormal: 144,632,000 vs moyenne 49,677,717",
+      "ratio_volume": 2.91140593010068
     },
     {
       "symbol": "MSFT",
@@ -39,8 +58,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 70836100,
-      "description": "Volume anormal: 70,836,100 vs moyenne 22,786,533",
-      "ratio_volume": 3.1086826137075114
+      "description": "Volume anormal: 70,836,100 vs moyenne 22,720,357",
+      "ratio_volume": 3.1177371274078705
     },
     {
       "symbol": "NVDA",
@@ -48,8 +67,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 324925900,
-      "description": "Volume anormal: 324,925,900 vs moyenne 191,607,147",
-      "ratio_volume": 1.6957921709756971
+      "description": "Volume anormal: 324,925,900 vs moyenne 190,896,434",
+      "ratio_volume": 1.7021056550761084
     },
     {
       "symbol": "NVDA",
@@ -67,8 +86,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 49977100,
-      "description": "Volume anormal: 49,977,100 vs moyenne 16,301,586",
-      "ratio_volume": 3.065781413274782
+      "description": "Volume anormal: 49,977,100 vs moyenne 16,294,289",
+      "ratio_volume": 3.0671544560998574
     },
     {
       "symbol": "META",
@@ -99,25 +118,6 @@
       "description": "Cassure HAUSSE de la MM50",
       "prix": 664.4500122070312,
       "MA_50": 662.1966418457031
-    },
-    {
-      "symbol": "TSLA",
-      "date": "2025-12-16",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": 81.38021424248657,
-      "description": "RSI en SURACHAT: 81.4",
-      "niveau": "SURACHAT"
-    },
-    {
-      "symbol": "AAPL",
-      "date": "2025-12-15",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure BAISSE de la MM20",
-      "prix": 274.1099853515625,
-      "MA_20": 276.3839996337891
     }
   ]
 }
