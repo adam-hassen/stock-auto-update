@@ -1,29 +1,69 @@
 {
-  "date_analyse": "2025-12-26 18:33:20",
-  "total_anomalies": 248,
+  "date_analyse": "2025-12-29 18:34:24",
+  "total_anomalies": 239,
   "par_type": {
-    "CASSURE_TENDANCE": 149,
+    "CASSURE_TENDANCE": 144,
     "RSI_EXTREME": 48,
-    "VOLUME_ANORMAL": 22,
-    "GAP_OUVERTURE": 19,
+    "VOLUME_ANORMAL": 21,
+    "GAP_OUVERTURE": 18,
     "MOUVEMENT_EXTREME": 6,
-    "VOLATILITE_EXTREME": 4
+    "VOLATILITE_EXTREME": 2
   },
   "par_severite": {
-    "MOYENNE": 238,
-    "HAUTE": 10
+    "MOYENNE": 231,
+    "HAUTE": 8
   },
   "par_action": {
-    "BTC-USD": 43,
-    "AMZN": 37,
-    "GOOGL": 32,
-    "META": 32,
-    "TSLA": 30,
-    "MSFT": 27,
-    "NVDA": 26,
+    "BTC-USD": 42,
+    "GOOGL": 33,
+    "AMZN": 33,
+    "META": 31,
+    "NVDA": 27,
+    "TSLA": 26,
+    "MSFT": 26,
     "AAPL": 21
   },
   "anomalies_recentes": [
+    {
+      "symbol": "GOOGL",
+      "date": "2025-12-23",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 314.3500061035156,
+      "MA_20": 313.45556488037107
+    },
+    {
+      "symbol": "NVDA",
+      "date": "2025-12-23",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure HAUSSE de la MM50",
+      "prix": 189.2100067138672,
+      "MA_50": 185.67247985839845
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2025-12-23",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 232.13999938964844,
+      "MA_20": 228.77399978637695
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2025-12-23",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure HAUSSE de la MM50",
+      "prix": 232.13999938964844,
+      "MA_50": 229.74940002441406
+    },
     {
       "symbol": "AAPL",
       "date": "2025-12-22",
@@ -49,8 +89,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 144632000,
-      "description": "Volume anormal: 144,632,000 vs moyenne 49,677,717",
-      "ratio_volume": 2.91140593010068
+      "description": "Volume anormal: 144,632,000 vs moyenne 49,872,016",
+      "ratio_volume": 2.900063217630505
     },
     {
       "symbol": "MSFT",
@@ -58,8 +98,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 70836100,
-      "description": "Volume anormal: 70,836,100 vs moyenne 22,720,357",
-      "ratio_volume": 3.1177371274078705
+      "description": "Volume anormal: 70,836,100 vs moyenne 22,632,880",
+      "ratio_volume": 3.1297872507671363
     },
     {
       "symbol": "NVDA",
@@ -67,8 +107,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 324925900,
-      "description": "Volume anormal: 324,925,900 vs moyenne 190,896,434",
-      "ratio_volume": 1.7021056550761084
+      "description": "Volume anormal: 324,925,900 vs moyenne 191,085,430",
+      "ratio_volume": 1.7004221598923215
     },
     {
       "symbol": "NVDA",
@@ -79,45 +119,6 @@
       "description": "Cassure HAUSSE de la MM20",
       "prix": 180.99000549316406,
       "MA_20": 179.6759994506836
-    },
-    {
-      "symbol": "META",
-      "date": "2025-12-19",
-      "type": "VOLUME_ANORMAL",
-      "severite": "MOYENNE",
-      "valeur": 49977100,
-      "description": "Volume anormal: 49,977,100 vs moyenne 16,294,289",
-      "ratio_volume": 3.0671544560998574
-    },
-    {
-      "symbol": "META",
-      "date": "2025-12-19",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure BAISSE de la MM50",
-      "prix": 658.77001953125,
-      "MA_50": 660.7137976074218
-    },
-    {
-      "symbol": "MSFT",
-      "date": "2025-12-18",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure HAUSSE de la MM20",
-      "prix": 483.9800109863281,
-      "MA_20": 481.6214996337891
-    },
-    {
-      "symbol": "META",
-      "date": "2025-12-18",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure HAUSSE de la MM50",
-      "prix": 664.4500122070312,
-      "MA_50": 662.1966418457031
     }
   ]
 }
