@@ -1,16 +1,16 @@
 {
-  "date_analyse": "2025-12-29 18:34:24",
-  "total_anomalies": 239,
+  "date_analyse": "2025-12-30 18:35:25",
+  "total_anomalies": 236,
   "par_type": {
-    "CASSURE_TENDANCE": 144,
+    "CASSURE_TENDANCE": 142,
     "RSI_EXTREME": 48,
-    "VOLUME_ANORMAL": 21,
+    "VOLUME_ANORMAL": 20,
     "GAP_OUVERTURE": 18,
     "MOUVEMENT_EXTREME": 6,
     "VOLATILITE_EXTREME": 2
   },
   "par_severite": {
-    "MOYENNE": 231,
+    "MOYENNE": 228,
     "HAUTE": 8
   },
   "par_action": {
@@ -18,9 +18,9 @@
     "GOOGL": 33,
     "AMZN": 33,
     "META": 31,
-    "NVDA": 27,
     "TSLA": 26,
-    "MSFT": 26,
+    "MSFT": 25,
+    "NVDA": 25,
     "AAPL": 21
   },
   "anomalies_recentes": [
@@ -89,8 +89,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 144632000,
-      "description": "Volume anormal: 144,632,000 vs moyenne 49,872,016",
-      "ratio_volume": 2.900063217630505
+      "description": "Volume anormal: 144,632,000 vs moyenne 49,586,351",
+      "ratio_volume": 2.91677037346783
     },
     {
       "symbol": "MSFT",
@@ -98,17 +98,8 @@
       "type": "VOLUME_ANORMAL",
       "severite": "MOYENNE",
       "valeur": 70836100,
-      "description": "Volume anormal: 70,836,100 vs moyenne 22,632,880",
-      "ratio_volume": 3.1297872507671363
-    },
-    {
-      "symbol": "NVDA",
-      "date": "2025-12-19",
-      "type": "VOLUME_ANORMAL",
-      "severite": "MOYENNE",
-      "valeur": 324925900,
-      "description": "Volume anormal: 324,925,900 vs moyenne 191,085,430",
-      "ratio_volume": 1.7004221598923215
+      "description": "Volume anormal: 70,836,100 vs moyenne 22,418,133",
+      "ratio_volume": 3.159768094701579
     },
     {
       "symbol": "NVDA",
@@ -119,6 +110,15 @@
       "description": "Cassure HAUSSE de la MM20",
       "prix": 180.99000549316406,
       "MA_20": 179.6759994506836
+    },
+    {
+      "symbol": "META",
+      "date": "2025-12-19",
+      "type": "VOLUME_ANORMAL",
+      "severite": "MOYENNE",
+      "valeur": 49977100,
+      "description": "Volume anormal: 49,977,100 vs moyenne 16,329,509",
+      "ratio_volume": 3.0605389956746873
     }
   ]
 }
