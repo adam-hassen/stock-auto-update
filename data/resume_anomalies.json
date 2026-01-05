@@ -1,29 +1,59 @@
 {
-  "date_analyse": "2026-01-02 18:33:35",
-  "total_anomalies": 239,
+  "date_analyse": "2026-01-05 18:37:04",
+  "total_anomalies": 238,
   "par_type": {
-    "CASSURE_TENDANCE": 144,
+    "CASSURE_TENDANCE": 143,
     "RSI_EXTREME": 48,
-    "VOLUME_ANORMAL": 20,
+    "VOLUME_ANORMAL": 21,
     "GAP_OUVERTURE": 18,
     "MOUVEMENT_EXTREME": 6,
-    "VOLATILITE_EXTREME": 3
+    "VOLATILITE_EXTREME": 2
   },
   "par_severite": {
     "MOYENNE": 230,
-    "HAUTE": 9
+    "HAUTE": 8
   },
   "par_action": {
-    "BTC-USD": 43,
+    "BTC-USD": 45,
     "GOOGL": 33,
     "AMZN": 33,
-    "META": 32,
+    "META": 31,
     "TSLA": 27,
-    "MSFT": 25,
     "NVDA": 25,
+    "MSFT": 23,
     "AAPL": 21
   },
   "anomalies_recentes": [
+    {
+      "symbol": "BTC-USD",
+      "date": "2026-01-02",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure HAUSSE de la MM50",
+      "prix": 89944.6953125,
+      "MA_50": 89375.77609375
+    },
+    {
+      "symbol": "BTC-USD",
+      "date": "2026-01-01",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 88731.984375,
+      "MA_20": 87745.6140625
+    },
+    {
+      "symbol": "BTC-USD",
+      "date": "2025-12-31",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure BAISSE de la MM20",
+      "prix": 87508.828125,
+      "MA_20": 87822.535546875
+    },
     {
       "symbol": "BTC-USD",
       "date": "2025-12-30",
@@ -92,34 +122,6 @@
       "valeur": 17.726949762576822,
       "description": "RSI en SURVENDE: 17.7",
       "niveau": "SURVENDE"
-    },
-    {
-      "symbol": "META",
-      "date": "2025-12-22",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure HAUSSE de la MM50",
-      "prix": 661.5,
-      "MA_50": 659.8492932128906
-    },
-    {
-      "symbol": "AAPL",
-      "date": "2025-12-19",
-      "type": "VOLUME_ANORMAL",
-      "severite": "MOYENNE",
-      "valeur": 144632000,
-      "description": "Volume anormal: 144,632,000 vs moyenne 49,180,231",
-      "ratio_volume": 2.9408564571116216
-    },
-    {
-      "symbol": "MSFT",
-      "date": "2025-12-19",
-      "type": "VOLUME_ANORMAL",
-      "severite": "MOYENNE",
-      "valeur": 70836100,
-      "description": "Volume anormal: 70,836,100 vs moyenne 22,138,579",
-      "ratio_volume": 3.1996678290417666
     }
   ]
 }
