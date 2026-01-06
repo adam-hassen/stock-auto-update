@@ -1,8 +1,8 @@
 {
-  "date_analyse": "2026-01-05 18:37:04",
-  "total_anomalies": 238,
+  "date_analyse": "2026-01-06 18:35:48",
+  "total_anomalies": 239,
   "par_type": {
-    "CASSURE_TENDANCE": 143,
+    "CASSURE_TENDANCE": 144,
     "RSI_EXTREME": 48,
     "VOLUME_ANORMAL": 21,
     "GAP_OUVERTURE": 18,
@@ -10,18 +10,18 @@
     "VOLATILITE_EXTREME": 2
   },
   "par_severite": {
-    "MOYENNE": 230,
+    "MOYENNE": 231,
     "HAUTE": 8
   },
   "par_action": {
-    "BTC-USD": 45,
+    "BTC-USD": 44,
+    "AMZN": 34,
     "GOOGL": 33,
-    "AMZN": 33,
     "META": 31,
     "TSLA": 27,
     "NVDA": 25,
     "MSFT": 23,
-    "AAPL": 21
+    "AAPL": 22
   },
   "anomalies_recentes": [
     {
@@ -45,6 +45,16 @@
       "MA_20": 87745.6140625
     },
     {
+      "symbol": "AAPL",
+      "date": "2025-12-31",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure BAISSE de la MM50",
+      "prix": 271.8599853515625,
+      "MA_50": 272.5897497558594
+    },
+    {
       "symbol": "BTC-USD",
       "date": "2025-12-31",
       "type": "CASSURE_TENDANCE",
@@ -53,6 +63,16 @@
       "description": "Cassure BAISSE de la MM20",
       "prix": 87508.828125,
       "MA_20": 87822.535546875
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2025-12-31",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure BAISSE de la MM50",
+      "prix": 230.82000732421875,
+      "MA_50": 231.43680053710938
     },
     {
       "symbol": "BTC-USD",
@@ -103,25 +123,6 @@
       "description": "Cassure HAUSSE de la MM20",
       "prix": 232.13999938964844,
       "MA_20": 228.77399978637695
-    },
-    {
-      "symbol": "AMZN",
-      "date": "2025-12-23",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure HAUSSE de la MM50",
-      "prix": 232.13999938964844,
-      "MA_50": 229.74940002441406
-    },
-    {
-      "symbol": "AAPL",
-      "date": "2025-12-22",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": 17.726949762576822,
-      "description": "RSI en SURVENDE: 17.7",
-      "niveau": "SURVENDE"
     }
   ]
 }
