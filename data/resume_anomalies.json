@@ -1,29 +1,79 @@
 {
-  "date_analyse": "2026-01-07 18:37:09",
-  "total_anomalies": 241,
+  "date_analyse": "2026-01-08 18:33:24",
+  "total_anomalies": 248,
   "par_type": {
-    "CASSURE_TENDANCE": 145,
+    "CASSURE_TENDANCE": 149,
     "RSI_EXTREME": 48,
-    "VOLUME_ANORMAL": 21,
+    "VOLUME_ANORMAL": 22,
     "GAP_OUVERTURE": 19,
     "MOUVEMENT_EXTREME": 6,
-    "VOLATILITE_EXTREME": 2
+    "VOLATILITE_EXTREME": 4
   },
   "par_severite": {
-    "MOYENNE": 233,
-    "HAUTE": 8
+    "MOYENNE": 238,
+    "HAUTE": 10
   },
   "par_action": {
-    "BTC-USD": 44,
-    "AMZN": 34,
+    "BTC-USD": 43,
+    "AMZN": 37,
+    "META": 35,
     "GOOGL": 33,
-    "META": 32,
-    "TSLA": 27,
+    "TSLA": 28,
     "MSFT": 25,
-    "NVDA": 24,
+    "NVDA": 25,
     "AAPL": 22
   },
   "anomalies_recentes": [
+    {
+      "symbol": "TSLA",
+      "date": "2026-01-05",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure HAUSSE de la MM50",
+      "prix": 451.6700134277344,
+      "MA_50": 445.2660021972656
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2026-01-05",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 233.05999755859375,
+      "MA_20": 228.67600021362304
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2026-01-05",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure HAUSSE de la MM50",
+      "prix": 233.05999755859375,
+      "MA_50": 231.82840057373048
+    },
+    {
+      "symbol": "META",
+      "date": "2026-01-05",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 658.7899780273438,
+      "MA_20": 658.4812927246094
+    },
+    {
+      "symbol": "META",
+      "date": "2026-01-05",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure HAUSSE de la MM50",
+      "prix": 658.7899780273438,
+      "MA_50": 650.3427294921875
+    },
     {
       "symbol": "TSLA",
       "date": "2026-01-02",
@@ -73,56 +123,6 @@
       "description": "Cassure BAISSE de la MM20",
       "prix": 650.4099731445312,
       "MA_20": 658.591342163086
-    },
-    {
-      "symbol": "META",
-      "date": "2026-01-02",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure BAISSE de la MM50",
-      "prix": 650.4099731445312,
-      "MA_50": 651.8231762695312
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2026-01-01",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure HAUSSE de la MM20",
-      "prix": 88731.984375,
-      "MA_20": 87745.6140625
-    },
-    {
-      "symbol": "AAPL",
-      "date": "2025-12-31",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure BAISSE de la MM50",
-      "prix": 271.8599853515625,
-      "MA_50": 272.5897497558594
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2025-12-31",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure BAISSE de la MM20",
-      "prix": 87508.828125,
-      "MA_20": 87822.535546875
-    },
-    {
-      "symbol": "AMZN",
-      "date": "2025-12-31",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure BAISSE de la MM50",
-      "prix": 230.82000732421875,
-      "MA_50": 231.43680053710938
     }
   ]
 }
