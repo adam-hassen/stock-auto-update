@@ -25,27 +25,20 @@ class Config:
     PUSH_TOKEN = os.getenv('PUSH_TOKEN')
     GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', PUSH_TOKEN)
     
-    # Repository pour les donnees sentiment
-    REPO_OWNER = "Gasthorn"
-    REPO_NAME = "Projet4A_PredictionsBoursieres"
-    REPO_BRANCH = "Collecte-Des-Donnees"
-    
     # Dossier pour sauvegarder les donnees
     SENTIMENT_FOLDER = "sentiment_data"
     os.makedirs(SENTIMENT_FOLDER, exist_ok=True)
 
-# ==================== FONCTIONS GIT ====================
-def git_push_to_repo():
-    """Pousse les fichiers CSV vers le repo GitHub"""
+# ==================== FONCTIONS GIT POUR DEUX REPOS ====================
+def git_push_to_both_repos():
+    """Pousse les fichiers CSV vers les deux repos GitHub"""
     
     if not Config.PUSH_TOKEN:
         print("PUSH_TOKEN non configure. Impossible de pousser vers GitHub.")
-        return False
+        return False, False
     
     print("\n" + "="*60)
-    print("Preparation du push vers GitHub...")
-    print(f"Repo: {Config.REPO_OWNER}/{Config.REPO_NAME}")
-    print(f"Branche: {Config.REPO_BRANCH}")
+    print("PREPARATION PUSH VERS DEUX REPOS GITHUB")
     print("="*60)
     
     # Chemin vers les fichiers CSV générés
@@ -55,24 +48,51 @@ def git_push_to_repo():
     csv_files = glob.glob(f"{original_dir}/{Config.SENTIMENT_FOLDER}/articles_*.csv")
     
     if not csv_files:
-        # Essayer aussi à la racine
-        csv_files = glob.glob(f"{original_dir}/articles_*.csv")
-    
-    if not csv_files:
         print("Aucun fichier CSV trouve a pousser")
-        print(f"Recherche dans: {original_dir}/{Config.SENTIMENT_FOLDER}/")
-        print(f"Recherche dans: {original_dir}/")
-        return False
+        return False, False
     
     print(f"Fichiers a pousser: {len(csv_files)}")
-    for csv_file in csv_files:
-        print(f"  - {os.path.basename(csv_file)}")
     
-    # Creer un dossier temporaire
+    # ==================== REPO 1: adam-hassen/stock-auto-update ====================
+    print("\n" + "="*40)
+    print("REPO 1: adam-hassen/stock-auto-update")
+    print("="*40)
+    
+    success_repo1 = push_to_specific_repo(
+        csv_files=csv_files,
+        repo_owner="adam-hassen",
+        repo_name="stock-auto-update",
+        repo_branch="main",
+        folder_name="sentiment"
+    )
+    
+    # ==================== REPO 2: Gasthorn/Projet4A_PredictionsBoursieres ====================
+    print("\n" + "="*40)
+    print("REPO 2: Gasthorn/Projet4A_PredictionsBoursieres")
+    print("="*40)
+    
+    success_repo2 = push_to_specific_repo(
+        csv_files=csv_files,
+        repo_owner="Gasthorn",
+        repo_name="Projet4A_PredictionsBoursieres",
+        repo_branch="Collecte-Des-Donnees",
+        folder_name="sentiment"
+    )
+    
+    return success_repo1, success_repo2
+
+def push_to_specific_repo(csv_files, repo_owner, repo_name, repo_branch, folder_name):
+    """Pousse les fichiers vers un repo spécifique"""
+    
+    print(f"  Repo: {repo_owner}/{repo_name}")
+    print(f"  Branche: {repo_branch}")
+    print(f"  Dossier: {folder_name}/")
+    
     temp_dir = tempfile.mkdtemp()
+    original_dir = os.getcwd()
     
     try:
-        print(f"\nDossier temporaire: {temp_dir}")
+        print(f"  Dossier temporaire: {temp_dir}")
         os.chdir(temp_dir)
         
         # Initialiser un nouveau repo git
@@ -80,17 +100,17 @@ def git_push_to_repo():
         subprocess.run(["git", "config", "user.email", "sentiment-bot@github.com"], check=False)
         subprocess.run(["git", "config", "user.name", "Sentiment Analysis Bot"], check=False)
         
-        # Creer la structure de dossiers
-        os.makedirs("sentiment", exist_ok=True)
+        # Créer la structure de dossiers
+        os.makedirs(folder_name, exist_ok=True)
         
         # Copier chaque fichier CSV
         for csv_file in csv_files:
             filename = os.path.basename(csv_file)
-            dest_path = os.path.join("sentiment", filename)
+            dest_path = os.path.join(folder_name, filename)
             shutil.copy2(csv_file, dest_path)
-            print(f"  Copie: sentiment/{filename}")
+            print(f"    → {folder_name}/{filename}")
         
-        # Créer un README spécifique
+        # Créer un README
         readme_content = f"""# Donnees d'Analyse de Sentiment
 
 *Derniere mise a jour: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
@@ -110,23 +130,12 @@ Les articles sont recuperes via NewsAPI.
 ## Fichiers disponibles
 
 Chaque fichier contient les articles pour une entreprise specifique.
-Colonnes principales:
-
-| Colonne | Description |
-|---------|-------------|
-| date | Date de publication de l'article |
-| source | Source de l'article (Reuters, Bloomberg, etc.) |
-| titre | Titre de l'article |
-| contenu | Contenu de l'article |
-| score | Score de sentiment (-1 a +1) |
-| sentiment | Categorie (positive/negative/neutral) |
 
 ---
-
 *Genere automatiquement par GitHub Actions*
 """
 
-        with open("sentiment/README.md", "w", encoding="utf-8") as f:
+        with open(f"{folder_name}/README.md", "w", encoding="utf-8") as f:
             f.write(readme_content)
         
         # Ajouter un .gitignore
@@ -142,41 +151,37 @@ Colonnes principales:
                                      capture_output=True, text=True)
         
         if commit_result.returncode != 0 and "nothing to commit" not in commit_result.stdout:
-            print(f"Erreur commit: {commit_result.stderr[:200]}")
-            # Essayer de voir ce qui se passe
-            subprocess.run(["git", "status"], capture_output=True, text=True)
+            print(f"    Erreur commit")
             return False
         
         # Créer la branche spécifiée
-        subprocess.run(["git", "branch", "-M", Config.REPO_BRANCH], check=True, capture_output=True)
+        subprocess.run(["git", "branch", "-M", repo_branch], check=True, capture_output=True)
         
         # URL du repo avec token
-        repo_url = f"https://x-access-token:{Config.PUSH_TOKEN}@github.com/{Config.REPO_OWNER}/{Config.REPO_NAME}.git"
+        repo_url = f"https://x-access-token:{Config.PUSH_TOKEN}@github.com/{repo_owner}/{repo_name}.git"
         
         # Ajouter le remote
         remote_add = subprocess.run(["git", "remote", "add", "origin", repo_url], 
                                   capture_output=True, text=True)
         
         if remote_add.returncode != 0:
-            print("Remote deja configure")
+            print("    Remote deja configure")
         
         # Force push vers la branche
-        print(f"\nPushing vers la branche {Config.REPO_BRANCH}...")
-        push_result = subprocess.run(["git", "push", "--force", "origin", Config.REPO_BRANCH], 
+        print(f"    Pushing vers la branche {repo_branch}...")
+        push_result = subprocess.run(["git", "push", "--force", "origin", repo_branch], 
                                    capture_output=True, text=True)
         
         if push_result.returncode == 0:
-            print(f"Push reussi sur la branche {Config.REPO_BRANCH}!")
-            print(f"URL: https://github.com/{Config.REPO_OWNER}/{Config.REPO_NAME}/tree/{Config.REPO_BRANCH}/sentiment")
+            print(f"    ✓ Push reussi sur {repo_owner}/{repo_name}")
+            print(f"    URL: https://github.com/{repo_owner}/{repo_name}/tree/{repo_branch}/{folder_name}")
             return True
         else:
-            print(f"Erreur push: {push_result.stderr[:200]}")
+            print(f"    ✗ Erreur push")
             return False
             
     except Exception as e:
-        print(f"Erreur: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"    ✗ Erreur: {str(e)}")
         return False
     finally:
         os.chdir(original_dir)
@@ -471,15 +476,28 @@ def main():
 
     print("\nANALYSE TERMINEE")
     
-    # Push vers GitHub
+    # Push vers les DEUX repos GitHub
     if Config.PUSH_TOKEN:
         print("\n" + "="*60)
-        print("PUSH VERS GITHUB...")
-        success = git_push_to_repo()
-        if success:
-            print("SUCCES: Articles pousses vers GitHub")
+        print("PUSH VERS DEUX REPOS GITHUB...")
+        success_repo1, success_repo2 = git_push_to_both_repos()
+        
+        print("\n" + "="*60)
+        print("RESUME PUSH GITHUB:")
+        print("="*60)
+        
+        if success_repo1:
+            print("✓ REPO 1: adam-hassen/stock-auto-update")
+            print("  URL: https://github.com/adam-hassen/stock-auto-update/tree/main/sentiment")
         else:
-            print("ECHEC: Probleme avec le push GitHub")
+            print("✗ REPO 1: Echec push")
+        
+        if success_repo2:
+            print("✓ REPO 2: Gasthorn/Projet4A_PredictionsBoursieres")
+            print("  URL: https://github.com/Gasthorn/Projet4A_PredictionsBoursieres/tree/Collecte-Des-Donnees/sentiment")
+        else:
+            print("✗ REPO 2: Echec push")
+        
         print("="*60)
     
     return all_dataframes
@@ -509,4 +527,4 @@ if __name__ == "__main__":
     print("1. Les fichiers CSV contiennent tous les articles")
     print("2. Colonnes: date, source, titre, contenu, score, sentiment")
     print("3. Donnees sauvegardees dans: sentiment_data/")
-    print("4. Poussees automatiquement sur GitHub")
+    print("4. Poussees automatiquement sur DEUX repos GitHub")
