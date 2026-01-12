@@ -1,4 +1,4 @@
-name: Run Analysis
+name: Stock Analysis
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  analyze:
+  run:
     runs-on: ubuntu-latest
     
     steps:
@@ -17,15 +17,25 @@ jobs:
       with:
         python-version: '3.12'
     
-    - name: Install
+    - name: Install packages
       run: |
         pip install yfinance pandas numpy requests
         pip install torch --index-url https://download.pytorch.org/whl/cpu
         pip install transformers
     
-    - name: Run scripts
+    - name: Run data pipeline
+      env:
+        PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+      run: python data_pipeline.py
+    
+    - name: Run sentiment analysis
+      env:
+        NEWSAPI_KEY: "ed172154b55e4d4eb95db4ac7895b29e"
+        GNEWS_API_KEY: "7fd1230f54a4be2030c483514e145263"
+        PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+      run: python sentiment_analysis.py
+    
+    - name: Show results
       run: |
-        python data_pipeline.py
-        NEWSAPI_KEY="ed172154b55e4d4eb95db4ac7895b29e" \
-        GNEWS_API_KEY="7fd1230f54a4be2030c483514e145263" \
-        python sentiment_analysis.py
+        echo "=== FILES ==="
+        find . -name "*.csv" -type f | xargs -I {} basename {}
