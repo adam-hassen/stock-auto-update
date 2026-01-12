@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,20 +29,38 @@ jobs:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
         run: python stock_pipeline.py
 
-      - name: Install dependencies sentiment_analysis
+      - name: Nettoyer avant installation transformers
         run: |
-          pip install transformers torch requests
-          pip install sentencepiece
-
-      - name: Run Sentiment Analysis
+          # Nettoyer le cache pip
+          pip cache purge
+          # Nettoyer les fichiers temporaires
+          sudo rm -rf /tmp/* /var/tmp/*
+          
+      - name: Install transformers light (sans torch)
+        run: |
+          # Installation légère de transformers
+          pip install transformers --no-deps
+          pip install sentencepiece tokenizers huggingface-hub requests pandas
+          
+      - name: Run Sentiment Analysis (mode CPU)
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-        run: python sentiment_analysis.py
+        run: |
+          # Forcer l'utilisation CPU pour éviter d'installer torch
+          python -c "
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+print('Mode CPU activé')
+"
+
+          # Lancer l'analyse
+          python sentiment_analysis.py
 
       - name: Verifier les fichiers generes
         run: |
           echo "Fichiers generes:"
-          ls -la *.csv 2>/dev/null || echo "Pas de CSV a la racine"
+          find . -name "*.csv" -type f | head -10
           ls -la data/ 2>/dev/null || echo "Pas de dossier data"
           ls -la sentiment_data/ 2>/dev/null || echo "Pas de dossier sentiment_data"
