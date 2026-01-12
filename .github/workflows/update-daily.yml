@@ -24,18 +24,32 @@ jobs:
         pip install transformers
     
     - name: Run data pipeline
-      env:
-        PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
       run: python data_pipeline.py
     
     - name: Run sentiment analysis
-      env:
-        NEWSAPI_KEY: "ed172154b55e4d4eb95db4ac7895b29e"
-        GNEWS_API_KEY: "7fd1230f54a4be2030c483514e145263"
-        PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
-      run: python sentiment_analysis.py
-    
-    - name: Show results
       run: |
-        echo "=== FILES ==="
-        find . -name "*.csv" -type f | xargs -I {} basename {}
+        export NEWSAPI_KEY="ed172154b55e4d4eb95db4ac7895b29e"
+        export GNEWS_API_KEY="7fd1230f54a4be2030c483514e145263"
+        python sentiment_analysis.py
+    
+    - name: Push to current repo
+      env:
+        GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
+      run: |
+        git config user.email "actions@github.com"
+        git config user.name "GitHub Actions"
+        
+        # Créer dossier pour les articles
+        mkdir -p sentiment_articles
+        cp articles_*.csv sentiment_articles/ 2>/dev/null || true
+        
+        # Ajouter tous les fichiers générés
+        git add data/ sentiment_articles/ articles_*.csv ALL_ARTICLES_*.csv 2>/dev/null || true
+        
+        # Commit si changements
+        if ! git diff --cached --quiet; then
+          git commit -m "Update analysis - $(date +'%Y-%m-%d %H:%M')"
+          git push
+        else
+          echo "No changes to commit"
+        fi
