@@ -1,6 +1,5 @@
 # ==================== IMPORT DES LIBRAIRIES ====================
 import requests
-from transformers import pipeline
 import pandas as pd
 from datetime import datetime, timedelta
 import warnings
@@ -9,6 +8,8 @@ import subprocess
 import tempfile
 import shutil
 import glob
+import json
+from typing import List, Dict, Any
 warnings.filterwarnings('ignore')
 
 # ==================== CONFIGURATION ====================
@@ -19,7 +20,6 @@ class Config:
     NEWSAPI_KEY = os.getenv('NEWSAPI_KEY', "ed172154b55e4d4eb95db4ac7895b29e")
     MAX_ARTICLES = 15
     DAYS_BACK = 3
-    FINBERT_MODEL = "ProsusAI/finbert"
     
     # Configuration GitHub
     PUSH_TOKEN = os.getenv('PUSH_TOKEN')
@@ -48,12 +48,31 @@ def git_push_to_repo():
     print(f"Branche: {Config.REPO_BRANCH}")
     print("="*60)
     
-    # Creer un dossier temporaire
-    temp_dir = tempfile.mkdtemp()
+    # Chemin vers les fichiers CSV générés
     original_dir = os.getcwd()
     
+    # Vérifier si les fichiers existent dans sentiment_data/
+    csv_files = glob.glob(f"{original_dir}/{Config.SENTIMENT_FOLDER}/articles_*.csv")
+    
+    if not csv_files:
+        # Essayer aussi à la racine
+        csv_files = glob.glob(f"{original_dir}/articles_*.csv")
+    
+    if not csv_files:
+        print("Aucun fichier CSV trouve a pousser")
+        print(f"Recherche dans: {original_dir}/{Config.SENTIMENT_FOLDER}/")
+        print(f"Recherche dans: {original_dir}/")
+        return False
+    
+    print(f"Fichiers a pousser: {len(csv_files)}")
+    for csv_file in csv_files:
+        print(f"  - {os.path.basename(csv_file)}")
+    
+    # Creer un dossier temporaire
+    temp_dir = tempfile.mkdtemp()
+    
     try:
-        print(f"Dossier temporaire: {temp_dir}")
+        print(f"\nDossier temporaire: {temp_dir}")
         os.chdir(temp_dir)
         
         # Initialiser un nouveau repo git
@@ -64,41 +83,22 @@ def git_push_to_repo():
         # Creer la structure de dossiers
         os.makedirs("sentiment", exist_ok=True)
         
-        # Copier tous les fichiers CSV de sentiment
-        csv_files = glob.glob(f"{original_dir}/articles_*.csv")
-        
-        if not csv_files:
-            print("Aucun fichier CSV trouve a pousser")
-            return False
-        
-        print(f"Fichiers a pousser: {len(csv_files)}")
-        
-        # Copier chaque fichier
+        # Copier chaque fichier CSV
         for csv_file in csv_files:
             filename = os.path.basename(csv_file)
             dest_path = os.path.join("sentiment", filename)
             shutil.copy2(csv_file, dest_path)
-            print(f"  -> sentiment/{filename}")
+            print(f"  Copie: sentiment/{filename}")
         
-        # Copier aussi les fichiers du dossier sentiment_data
-        sentiment_data_dir = os.path.join(original_dir, Config.SENTIMENT_FOLDER)
-        if os.path.exists(sentiment_data_dir):
-            sentiment_files = glob.glob(f"{sentiment_data_dir}/*.csv")
-            for s_file in sentiment_files:
-                s_filename = os.path.basename(s_file)
-                dest_path = os.path.join("sentiment", s_filename)
-                shutil.copy2(s_file, dest_path)
-                print(f"  -> sentiment/{s_filename}")
-        
-        # Creer un README specifique
+        # Créer un README spécifique
         readme_content = f"""# Donnees d'Analyse de Sentiment
 
 *Derniere mise a jour: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
 
 ## Description
 
-Ce dossier contient les analyses de sentiment des articles financiers pour differentes entreprises.
-Les analyses sont effectuees quotidiennement avec le modele FinBERT.
+Ce dossier contient les articles financiers pour differentes entreprises.
+Les articles sont recuperes via NewsAPI.
 
 ## Entreprises analysees
 
@@ -109,7 +109,7 @@ Les analyses sont effectuees quotidiennement avec le modele FinBERT.
 
 ## Fichiers disponibles
 
-Chaque fichier contient les articles analyses pour une entreprise specifique.
+Chaque fichier contient les articles pour une entreprise specifique.
 Colonnes principales:
 
 | Colonne | Description |
@@ -117,16 +117,9 @@ Colonnes principales:
 | date | Date de publication de l'article |
 | source | Source de l'article (Reuters, Bloomberg, etc.) |
 | titre | Titre de l'article |
+| contenu | Contenu de l'article |
 | score | Score de sentiment (-1 a +1) |
 | sentiment | Categorie (positive/negative/neutral) |
-| confiance | Niveau de confiance du modele |
-| score_pondere | Score pondere par la pertinence |
-
-## Methodologie
-
-1. **Collecte**: Articles recuperes via NewsAPI (3 derniers jours)
-2. **Analyse**: Modele FinBERT (ProsusAI/finbert)
-3. **Ponderation**: Score ajuste selon la source et l'actualite
 
 ---
 
@@ -144,15 +137,17 @@ Colonnes principales:
         subprocess.run(["git", "add", "."], check=True, capture_output=True)
         
         # Commit
-        commit_msg = f"Mise a jour analyse sentiment {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        commit_msg = f"Mise a jour articles {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         commit_result = subprocess.run(["git", "commit", "-m", commit_msg], 
                                      capture_output=True, text=True)
         
         if commit_result.returncode != 0 and "nothing to commit" not in commit_result.stdout:
-            print(f"Erreur commit: {commit_result.stderr}")
+            print(f"Erreur commit: {commit_result.stderr[:200]}")
+            # Essayer de voir ce qui se passe
+            subprocess.run(["git", "status"], capture_output=True, text=True)
             return False
         
-        # Creer la branche specifiee
+        # Créer la branche spécifiée
         subprocess.run(["git", "branch", "-M", Config.REPO_BRANCH], check=True, capture_output=True)
         
         # URL du repo avec token
@@ -166,20 +161,20 @@ Colonnes principales:
             print("Remote deja configure")
         
         # Force push vers la branche
-        print(f"Pushing vers la branche {Config.REPO_BRANCH}...")
+        print(f"\nPushing vers la branche {Config.REPO_BRANCH}...")
         push_result = subprocess.run(["git", "push", "--force", "origin", Config.REPO_BRANCH], 
                                    capture_output=True, text=True)
         
         if push_result.returncode == 0:
             print(f"Push reussi sur la branche {Config.REPO_BRANCH}!")
-            print(f"https://github.com/{Config.REPO_OWNER}/{Config.REPO_NAME}/tree/{Config.REPO_BRANCH}")
+            print(f"URL: https://github.com/{Config.REPO_OWNER}/{Config.REPO_NAME}/tree/{Config.REPO_BRANCH}/sentiment")
             return True
         else:
             print(f"Erreur push: {push_result.stderr[:200]}")
             return False
             
     except Exception as e:
-        print(f"Erreur: {e}")
+        print(f"Erreur: {str(e)}")
         import traceback
         traceback.print_exc()
         return False
@@ -195,13 +190,13 @@ class NewsAPIClient:
     """Client pour recuperer les articles"""
 
     @staticmethod
-    def get_news_api_articles(query, api_key, max_results=10):
+    def get_news_api_articles(query: str, api_key: str, max_results: int = 10) -> List[Dict[str, Any]]:
         """Recupere les articles via NewsAPI"""
         from_date = (datetime.now() - timedelta(days=Config.DAYS_BACK)).strftime('%Y-%m-%d')
 
         url = "https://newsapi.org/v2/everything"
         params = {
-            'q': f'{query} AND (stock OR shares OR earnings OR revenue)',
+            'q': f'{query} AND (stock OR shares OR earnings OR revenue OR market)',
             'apiKey': api_key,
             'pageSize': max_results,
             'language': 'en',
@@ -220,50 +215,61 @@ class NewsAPIClient:
             print(f"Erreur connexion: {e}")
             return []
 
-# ==================== ANALYSE SENTIMENT ====================
-class SentimentAnalyzer:
-    """Analyseur de sentiment avec FinBERT"""
-
+# ==================== ANALYSE SIMPLE ====================
+class SimpleSentimentAnalyzer:
+    """Analyseur de sentiment simple sans transformers"""
+    
     def __init__(self):
-        print("Chargement du modele FinBERT...")
-        self.sentiment_pipeline = pipeline(
-            "sentiment-analysis",
-            model=Config.FINBERT_MODEL,
-            tokenizer=Config.FINBERT_MODEL
-        )
-        print("Modele FinBERT charge avec succes!")
-
-    def build_query(self, ticker, company_name):
+        print("Analyseur simple initialise (sans FinBERT)")
+        # Liste de mots positifs et negatifs pour analyse basique
+        self.positive_words = [
+            'profit', 'gain', 'growth', 'increase', 'rise', 'up', 'positive',
+            'strong', 'beat', 'success', 'win', 'bullish', 'optimistic', 'good',
+            'profit', 'gains', 'growing', 'increasing', 'rising', 'positive',
+            'stronger', 'beats', 'successful', 'wins', 'bullish', 'optimism'
+        ]
+        
+        self.negative_words = [
+            'loss', 'decline', 'decrease', 'fall', 'down', 'negative',
+            'weak', 'miss', 'fail', 'bearish', 'pessimistic', 'bad', 'drop',
+            'losses', 'declining', 'decreasing', 'falling', 'negative',
+            'weaker', 'misses', 'failure', 'bearish', 'pessimism'
+        ]
+    
+    def build_query(self, ticker: str, company_name: str) -> str:
         """Construit une requete pour l'entreprise"""
         return f'"{company_name}" OR {ticker}'
-
-    def analyze_text(self, text):
-        """Analyse le sentiment d'un texte"""
+    
+    def simple_sentiment_analysis(self, text: str) -> Dict[str, Any]:
+        """Analyse sentiment simple basee sur les mots cles"""
         try:
-            text = str(text).strip()
-            if len(text) < 20:
-                return {'polarity': 0, 'label': 'neutral', 'confidence': 0.1}
-
-            # Limite la longueur du texte
-            if len(text) > 500:
-                text = text[:400] + " ... " + text[-100:]
-
-            # Analyse avec FinBERT
-            result = self.sentiment_pipeline(text)[0]
+            text_lower = str(text).lower().strip()
             
-            label = result['label']
-            confidence = result['score']
+            if len(text_lower) < 20:
+                return {'score': 0, 'label': 'neutral', 'confidence': 0.1}
             
-            # Convertir en score numerique simple
-            if label == 'positive':
-                score = confidence
-            elif label == 'negative':
-                score = -confidence
+            # Compter les mots positifs et negatifs
+            positive_count = sum(1 for word in self.positive_words if word in text_lower)
+            negative_count = sum(1 for word in self.negative_words if word in text_lower)
+            
+            # Calculer le score simple
+            total_words = positive_count + negative_count
+            if total_words == 0:
+                return {'score': 0, 'label': 'neutral', 'confidence': 0.1}
+            
+            score = (positive_count - negative_count) / total_words
+            score = max(-1.0, min(1.0, score))
+            
+            # Determiner le label
+            if score > 0.1:
+                label = 'positive'
+            elif score < -0.1:
+                label = 'negative'
             else:
-                score = 0.0
+                label = 'neutral'
             
-            # Normaliser entre -1 et 1
-            score = max(-1.0, min(1.0, score * 2 - 1 if score > 0 else score * 2 + 1))
+            # Calculer la confiance (simple)
+            confidence = min(1.0, total_words / 10)  # Plus de mots trouves = plus de confiance
             
             return {
                 'score': score,
@@ -272,10 +278,10 @@ class SentimentAnalyzer:
             }
             
         except Exception as e:
-            print(f"Erreur analyse: {e}")
+            print(f"Erreur analyse simple: {e}")
             return {'score': 0, 'label': 'neutral', 'confidence': 0.1}
-
-    def calculate_weight(self, article):
+    
+    def calculate_weight(self, article: Dict[str, Any]) -> float:
         """Calcule l'importance de l'article"""
         weight = 1.0
 
@@ -321,8 +327,8 @@ class SentimentAnalyzer:
 
         # Limites
         return max(0.2, min(weight, 3.0))
-
-    def analyze_company(self, ticker, company_name):
+    
+    def analyze_company(self, ticker: str, company_name: str) -> pd.DataFrame:
         """Analyse les articles d'une entreprise"""
         print(f"\n{'='*60}")
         print(f"ANALYSE POUR {company_name} ({ticker})")
@@ -337,7 +343,7 @@ class SentimentAnalyzer:
 
         if not articles:
             print("Aucun article trouve")
-            return None
+            return pd.DataFrame()
 
         analyzed_articles = []
         
@@ -350,8 +356,8 @@ class SentimentAnalyzer:
             description = str(article.get('description', '')).strip()
             content = f"{title}. {description}"
 
-            # Analyse sentiment
-            sentiment = self.analyze_text(content)
+            # Analyse sentiment simple
+            sentiment = self.simple_sentiment_analysis(content)
             
             # Calcul poids
             weight = self.calculate_weight(article)
@@ -420,13 +426,13 @@ class SentimentAnalyzer:
 # ==================== EXECUTION PRINCIPALE ====================
 def main():
     """Fonction principale"""
-    print("DEBUT DE L'ANALYSE")
+    print("DEBUT DE L'ANALYSE D'ARTICLES")
     print(f"Source: {Config.API_SOURCE}")
     print(f"Periode: {Config.DAYS_BACK} jours")
     print("=" * 60)
 
     # Initialisation
-    analyzer = SentimentAnalyzer()
+    analyzer = SimpleSentimentAnalyzer()
 
     # Entreprises a analyser
     entreprises = [
@@ -471,7 +477,7 @@ def main():
         print("PUSH VERS GITHUB...")
         success = git_push_to_repo()
         if success:
-            print("SUCCES: Donnees poussees vers GitHub")
+            print("SUCCES: Articles pousses vers GitHub")
         else:
             print("ECHEC: Probleme avec le push GitHub")
         print("="*60)
@@ -481,7 +487,7 @@ def main():
 # ==================== LANCEMENT ====================
 if __name__ == "__main__":
     # Test connexion
-    print("Test de connexion...")
+    print("Test de connexion NewsAPI...")
     
     try:
         test_url = f"https://newsapi.org/v2/everything?q=test&apiKey={Config.NEWSAPI_KEY}&pageSize=1"
@@ -490,8 +496,9 @@ if __name__ == "__main__":
             print("Connexion NewsAPI OK")
         else:
             print(f"Erreur NewsAPI: {response.status_code}")
-    except:
-        print("Connexion NewsAPI echouee")
+            print(f"Message: {response.text[:200]}")
+    except Exception as e:
+        print(f"Connexion NewsAPI echouee: {e}")
 
     print("\n" + "=" * 60)  
 
