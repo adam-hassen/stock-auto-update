@@ -1,30 +1,47 @@
-name: Mise à jour quotidienne des prix
+name: Mise a jour quotidienne des prix et analyse de sentiment
 
 on:
   schedule:
-    - cron: '0 18 * * 1-5'  # 20h FR
+    - cron: '0 18 * * 1-5'  # 20h FR (18h UTC) du lundi au vendredi
   workflow_dispatch:
 
 jobs:
-  run-pipeline:
+  run-all-scripts:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PUSH_TOKEN }}  # Ton PAT
+          token: ${{ secrets.PUSH_TOKEN }}
 
-      - name: Set up Python
+      - name: Setup Python 3.12
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
-        run: pip install yfinance tiingo pandas
+      - name: Install dependencies stock_pipeline
+        run: pip install yfinance pandas numpy
 
-      - name: Run pipeline
+      - name: Run Stock Pipeline
         env:
-          TIINGO_API_KEY: ${{ secrets.TIINGO_API_KEY }}
-          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}  # Passe le PAT
+          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
         run: python stock_pipeline.py
+
+      - name: Install dependencies sentiment_analysis
+        run: |
+          pip install transformers torch requests
+          pip install sentencepiece
+
+      - name: Run Sentiment Analysis
+        env:
+          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+        run: python sentiment_analysis.py
+
+      - name: Verifier les fichiers generes
+        run: |
+          echo "Fichiers generes:"
+          ls -la *.csv 2>/dev/null || echo "Pas de CSV a la racine"
+          ls -la data/ 2>/dev/null || echo "Pas de dossier data"
+          ls -la sentiment_data/ 2>/dev/null || echo "Pas de dossier sentiment_data"
