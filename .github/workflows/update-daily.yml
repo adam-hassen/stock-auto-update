@@ -24,6 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install yfinance pandas numpy requests
+          pip install transformers torch scikit-learn
 
       - name: Run Financial Data Pipeline (yFinance)
         env:
@@ -34,6 +35,7 @@ jobs:
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
         run: python sentiment_analysis.py
 
       - name: Verify generated files
