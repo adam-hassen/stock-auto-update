@@ -1,4 +1,4 @@
-name: Mise a jour quotidienne des prix et analyse de sentiment
+name: Daily Stock and News Collection
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-all-scripts:
+  collect-data:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -16,51 +16,30 @@ jobs:
         with:
           token: ${{ secrets.PUSH_TOKEN }}
 
-      - name: Setup Python 3.12
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      - name: Install dependencies stock_pipeline
-        run: pip install yfinance pandas numpy
+      - name: Install minimal dependencies
+        run: |
+          pip install yfinance pandas numpy requests
 
       - name: Run Stock Pipeline
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
         run: python stock_pipeline.py
 
-      - name: Nettoyer avant installation transformers
-        run: |
-          # Nettoyer le cache pip
-          pip cache purge
-          # Nettoyer les fichiers temporaires
-          sudo rm -rf /tmp/* /var/tmp/*
-          
-      - name: Install transformers light (sans torch)
-        run: |
-          # Installation légère de transformers
-          pip install transformers --no-deps
-          pip install sentencepiece tokenizers huggingface-hub requests pandas
-          
-      - name: Run Sentiment Analysis (mode CPU)
+      - name: Run News Collection (simplifié)
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-        run: |
-          # Forcer l'utilisation CPU pour éviter d'installer torch
-          python -c "
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-print('Mode CPU activé')
-"
+        run: python sentiment_analysis_simple.py
 
-          # Lancer l'analyse
-          python sentiment_analysis.py
-
-      - name: Verifier les fichiers generes
+      - name: List generated files
         run: |
-          echo "Fichiers generes:"
-          find . -name "*.csv" -type f | head -10
-          ls -la data/ 2>/dev/null || echo "Pas de dossier data"
-          ls -la sentiment_data/ 2>/dev/null || echo "Pas de dossier sentiment_data"
+          echo "=== Fichiers générés ==="
+          find . -name "*.csv" -type f | sort
+          echo ""
+          echo "=== Taille des dossiers ==="
+          du -sh data/ sentiment_data/ 2>/dev/null || echo "Dossiers non trouvés"
