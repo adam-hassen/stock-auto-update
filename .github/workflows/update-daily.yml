@@ -35,7 +35,7 @@ jobs:
         git config user.name "GitHub Actions"
     
     - name: Run Financial Data Collection
-      run: python financial_data.py
+      run: python data_pipeline.py
     
     - name: Run Sentiment Analysis
       env:
