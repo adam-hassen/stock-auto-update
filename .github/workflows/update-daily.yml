@@ -1,195 +1,39 @@
-name: Daily Stock and News Collection
+name: Run Analysis
 
 on:
   schedule:
-    - cron: '0 18 * * 1-5'  # 20h FR (18h UTC) du lundi au vendredi
+    - cron: '0 18 * * 1-5'
   workflow_dispatch:
 
 jobs:
-  collect-data:
+  analyze:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    permissions:
-      contents: write
     
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PUSH_TOKEN }}
-          fetch-depth: 0
-
-      - name: 🐍 Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-
-      - name: 🔍 Debug environment
-        run: |
-          echo "=== CONFIGURATION ==="
-          echo "PUSH_TOKEN exists: ${{ secrets.PUSH_TOKEN != '' }}"
-          echo "NEWSAPI_KEY exists: ${{ secrets.NEWSAPI_KEY != '' }}"
-          echo "GNEWS_API_KEY exists: ${{ secrets.GNEWS_API_KEY != '' }}"
-          echo ""
-          echo "=== Python version ==="
-          python --version
-
-      - name: 📦 Install dependencies
-        run: |
-          echo "Installing dependencies..."
-          
-          # Packages de base
-          pip install yfinance pandas numpy requests
-          
-          # PyTorch CPU (beaucoup plus léger)
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-          
-          # Transformers pour FinBERT
-          pip install transformers
-          
-          # Nettoyer le cache
-          pip cache purge || true
-          
-          echo "Dependencies installed successfully!"
-
-      - name: 📊 Run Financial Data Pipeline (data_pipeline.py)
-        env:
-          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
-        run: |
-          echo "🚀 Starting data_pipeline.py..."
-          python data_pipeline.py
-          
-          echo ""
-          echo "=== Data pipeline completed ==="
-          echo "Files generated in data/ folder:"
-          ls -la data/*.csv 2>/dev/null | head -10 || echo "No files found in data/"
-
-      - name: 📰 Run Sentiment Analysis (sentiment_analysis.py)
-        env:
-          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
-          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-          GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
-        run: |
-          echo "🧠 Starting sentiment_analysis.py..."
-          echo ""
-          echo "=== Environment variables check ==="
-          python -c "
-import os
-print('PUSH_TOKEN:', 'PRESENT' if os.getenv('PUSH_TOKEN') else 'MISSING')
-print('NEWSAPI_KEY:', 'PRESENT' if os.getenv('NEWSAPI_KEY') else 'MISSING')
-print('GNEWS_API_KEY:', 'PRESENT' if os.getenv('GNEWS_API_KEY') else 'MISSING')
-          "
-          
-          echo ""
-          echo "=== Running script ==="
-          python sentiment_analysis.py
-          
-          echo ""
-          echo "=== Checking for sentiment files ==="
-          if ls articles_*.csv 1> /dev/null 2>&1; then
-            echo "✅ Sentiment files found:"
-            ls -la articles_*.csv
-            echo ""
-            echo "First 2 lines of first file:"
-            head -3 $(ls articles_*.csv | head -1)
-          else
-            echo "❌ No sentiment files generated"
-            # Créer un fichier de test pour debug
-            echo "date,source,titre,score,sentiment" > articles_DEBUG_$(date +%Y%m%d_%H%M).csv
-            echo "$(date),Test Source,Test Article,0.0,neutral" >> articles_DEBUG_$(date +%Y%m%d_%H%M).csv
-          fi
-
-      - name: 📁 Combine and organize files
-        run: |
-          echo "=== Organizing all generated files ==="
-          echo ""
-          
-          # Créer un dossier pour les résultats
-          mkdir -p results
-          
-          # Copier tous les fichiers CSV
-          cp -r data/ results/ 2>/dev/null || true
-          cp articles_*.csv results/ 2>/dev/null || true
-          
-          # Lister tous les fichiers
-          echo "All CSV files in results/:"
-          find results/ -name "*.csv" -type f | xargs ls -lh 2>/dev/null || echo "No CSV files"
-          
-          echo ""
-          echo "File counts:"
-          echo "- data/ folder: $(find data/ -name "*.csv" -type f 2>/dev/null | wc -l) files"
-          echo "- sentiment files: $(find . -maxdepth 1 -name "articles_*.csv" -type f 2>/dev/null | wc -l) files"
-
-      - name: 🚀 Push to GitHub repositories
-        if: success() && env.PUSH_TOKEN != ''
-        env:
-          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
-        run: |
-          echo "📤 Pushing to GitHub..."
-          
-          # Configurer git
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "GitHub Actions Bot"
-          
-          # Créer le dossier sentiment_articles s'il n'existe pas
-          mkdir -p sentiment_articles
-          
-          # Copier les fichiers sentiment dans le dossier
-          cp articles_*.csv sentiment_articles/ 2>/dev/null || echo "No sentiment files to copy"
-          
-          # Ajouter tous les changements
-          git add data/ sentiment_articles/
-          
-          # Commit si il y a des changements
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "📈 Update stock data and sentiment analysis - $(date +'%Y-%m-%d %H:%M')"
-            git push origin HEAD:${{ github.ref }}
-          fi
-
-      - name: 🗃️ Create comprehensive artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: complete-analysis-$(date +%Y%m%d-%H%M)
-          path: |
-            data/
-            sentiment_articles/
-            *.csv
-            *.py
-          retention-days: 7
-
-      - name: 📊 Final report
-        run: |
-          echo "========================================"
-          echo "✅ ANALYSIS COMPLETED SUCCESSFULLY"
-          echo "========================================"
-          echo ""
-          echo "📅 Execution time: $(date)"
-          echo ""
-          echo "📁 GENERATED FILES:"
-          echo "-------------------"
-          
-          # Compter les fichiers par type
-          stock_files=$(find data/ -name "*.csv" -type f 2>/dev/null | wc -l)
-          sentiment_files=$(find . -maxdepth 1 -name "articles_*.csv" -type f 2>/dev/null | wc -l)
-          
-          echo "📈 Stock data files: $stock_files"
-          if [ $stock_files -gt 0 ]; then
-            echo "   Location: data/ folder"
-            find data/ -name "*.csv" -type f 2>/dev/null | xargs -I {} basename {} | head -5
-            [ $stock_files -gt 5 ] && echo "   ... and $((stock_files - 5)) more"
-          fi
-          
-          echo ""
-          echo "📰 Sentiment analysis files: $sentiment_files"
-          if [ $sentiment_files -gt 0 ]; then
-            echo "   Location: sentiment_articles/ folder"
-            ls -1 articles_*.csv 2>/dev/null | head -3
-            [ $sentiment_files -gt 3 ] && echo "   ... and $((sentiment_files - 3)) more"
-          fi
-          
-          echo ""
-          echo "🔗 Artifact: complete-analysis-$(date +%Y%m%d-%H%M).zip"
-          echo "========================================"
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Install dependencies
+      run: |
+        pip install yfinance pandas numpy requests torch transformers
+    
+    - name: Run scripts
+      run: |
+        # Run stock data
+        python data_pipeline.py
+        
+        # Run sentiment with forced keys
+        NEWSAPI_KEY="ed172154b55e4d4eb95db4ac7895b29e" \
+        GNEWS_API_KEY="7fd1230f54a4be2030c483514e145263" \
+        PUSH_TOKEN="${{ secrets.PUSH_TOKEN }}" \
+        python sentiment_analysis.py
+    
+    - name: Show results
+      run: |
+        echo "Files created:"
+        ls *.csv 2>/dev/null || echo "No CSV files"
+        ls data/*.csv 2>/dev/null || echo "No data files"
