@@ -1,4 +1,4 @@
-name: Daily Stock and News Collection
+name: Stock Analysis
 
 on:
   schedule:
@@ -6,9 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  analyze:
+  run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     
     steps:
     - uses: actions/checkout@v4
@@ -18,33 +17,24 @@ jobs:
       with:
         python-version: '3.12'
     
-    - name: Free disk space
-      run: |
-        sudo apt-get clean
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /opt/ghc
-        df -h
-    
-    - name: Install dependencies (CPU only)
+    - name: Install
       run: |
         pip install yfinance pandas numpy requests
         pip install torch --index-url https://download.pytorch.org/whl/cpu
         pip install transformers
-        pip cache purge
     
     - name: Run data pipeline
       run: python data_pipeline.py
     
-    - name: Run sentiment analysis
+    - name: Run sentiment
       env:
         NEWSAPI_KEY: "ed172154b55e4d4eb95db4ac7895b29e"
         GNEWS_API_KEY: "7fd1230f54a4be2030c483514e145263"
-        PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
       run: |
         python sentiment_analysis.py
     
-    - name: Push to GitHub
-      if: success() && ${{ secrets.PUSH_TOKEN }} != ''
+    - name: Push if token exists
+      if: ${{ secrets.PUSH_TOKEN != '' }}
       env:
         GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
       run: |
@@ -52,22 +42,11 @@ jobs:
         git config user.name "GitHub Actions"
         
         mkdir -p sentiment_articles
-        cp articles_*.csv sentiment_articles/ 2>/dev/null || echo "No sentiment files"
+        cp articles_*.csv sentiment_articles/ 2>/dev/null || true
         
         git add data/ sentiment_articles/
         
-        if git diff --cached --quiet; then
-          echo "No changes to commit"
-        else
-          git commit -m "Update data and sentiment - $(date +'%Y-%m-%d %H:%M')"
+        if ! git diff --cached --quiet; then
+          git commit -m "Update data - $(date +'%Y-%m-%d %H:%M')"
           git push
         fi
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: results
-        path: |
-          data/
-          sentiment_articles/
-        retention-days: 7
