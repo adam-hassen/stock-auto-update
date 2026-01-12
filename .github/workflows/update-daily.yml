@@ -44,7 +44,7 @@ jobs:
         python sentiment_analysis.py
     
     - name: Push to GitHub
-      if: success() && secrets.PUSH_TOKEN != ''
+      if: success() && ${{ secrets.PUSH_TOKEN }} != ''
       env:
         GITHUB_TOKEN: ${{ secrets.PUSH_TOKEN }}
       run: |
