@@ -21,25 +21,30 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install minimal dependencies
+      - name: Install dependencies
         run: |
           pip install yfinance pandas numpy requests
 
-      - name: Run Stock Pipeline
+      - name: Run Financial Data Pipeline (yFinance)
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
-        run: python stock_pipeline.py
+        run: python data_pipeline.py
 
-      - name: Run News Collection (simplifié)
+      - name: Run Sentiment Analysis (NewsAPI)
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
         run: python sentiment_analysis.py
 
-      - name: List generated files
+      - name: Verify generated files
         run: |
-          echo "=== Fichiers générés ==="
+          echo "=== Generated CSV files ==="
           find . -name "*.csv" -type f | sort
+          
           echo ""
-          echo "=== Taille des dossiers ==="
-          du -sh data/ sentiment_data/ 2>/dev/null || echo "Dossiers non trouvés"
+          echo "=== Data folder ==="
+          ls -la data/
+          
+          echo ""
+          echo "=== Sentiment folder ==="
+          ls -la sentiment_data/
