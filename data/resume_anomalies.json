@@ -1,29 +1,49 @@
 {
-  "date_analyse": "2026-01-09 18:36:08",
-  "total_anomalies": 249,
+  "date_analyse": "2026-01-12 16:02:52",
+  "total_anomalies": 248,
   "par_type": {
-    "CASSURE_TENDANCE": 150,
-    "RSI_EXTREME": 48,
-    "VOLUME_ANORMAL": 22,
-    "GAP_OUVERTURE": 19,
-    "MOUVEMENT_EXTREME": 6,
-    "VOLATILITE_EXTREME": 4
+    "CASSURE_TENDANCE": 149,
+    "RSI_EXTREME": 46,
+    "VOLUME_ANORMAL": 23,
+    "GAP_OUVERTURE": 20,
+    "MOUVEMENT_EXTREME": 7,
+    "VOLATILITE_EXTREME": 3
   },
   "par_severite": {
-    "MOYENNE": 239,
+    "MOYENNE": 238,
     "HAUTE": 10
   },
   "par_action": {
     "BTC-USD": 43,
-    "AMZN": 37,
-    "META": 35,
+    "AMZN": 36,
+    "META": 34,
     "GOOGL": 33,
-    "TSLA": 29,
-    "MSFT": 25,
+    "TSLA": 28,
+    "MSFT": 26,
     "NVDA": 25,
-    "AAPL": 22
+    "AAPL": 23
   },
   "anomalies_recentes": [
+    {
+      "symbol": "MSFT",
+      "date": "2026-01-07",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure HAUSSE de la MM20",
+      "prix": 483.4700012207031,
+      "MA_20": 482.1640029907227
+    },
+    {
+      "symbol": "META",
+      "date": "2026-01-07",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure BAISSE de la MM20",
+      "prix": 648.6900024414062,
+      "MA_20": 656.9904022216797
+    },
     {
       "symbol": "TSLA",
       "date": "2026-01-06",
@@ -103,26 +123,6 @@
       "description": "Cassure BAISSE de la MM20",
       "prix": 472.94000244140625,
       "MA_20": 483.1735015869141
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2026-01-02",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure HAUSSE de la MM50",
-      "prix": 89944.6953125,
-      "MA_50": 89375.77609375
-    },
-    {
-      "symbol": "AMZN",
-      "date": "2026-01-02",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure BAISSE de la MM20",
-      "prix": 226.5,
-      "MA_20": 228.47850036621094
     }
   ]
 }
