@@ -1,602 +1,130 @@
-# -*- coding: utf-8 -*-
-"""
-PIPELINE COMPLÈTE - Version avec les bonnes branches
-Repo 1 (exécution): adam-hassen/stock-auto-update (main)
-Repo 2 (données): Gasthorn/Projet4A_PredictionsBoursieres (Collecte-Des-Données)
-"""
-
-import os
+# ==================== IMPORT DES LIBRAIRIES ====================
+import requests
 import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
-import yfinance as yf
-import subprocess
-import json
 import warnings
-import shutil
+import os
+import subprocess
 import tempfile
+import shutil
+import glob
+import json
+from typing import List, Dict, Any
 warnings.filterwarnings('ignore')
 
-# ====================== CONFIGURATION ======================
-PUSH_TOKEN = os.getenv('PUSH_TOKEN')
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', PUSH_TOKEN)
-DATA_FOLDER = "data"
-os.makedirs(DATA_FOLDER, exist_ok=True)
+# ==================== CONFIGURATION ====================
+class Config:
+    """Configuration centrale du projet"""
+    
+    API_SOURCE = 'newsapi'
+    NEWSAPI_KEY = os.getenv('NEWSAPI_KEY', "ed172154b55e4d4eb95db4ac7895b29e")
+    MAX_ARTICLES = 15
+    DAYS_BACK = 3
+    
+    # Configuration GitHub
+    PUSH_TOKEN = os.getenv('PUSH_TOKEN')
+    GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', PUSH_TOKEN)
+    
+    # Repository pour les donnees sentiment
+    REPO_OWNER = "Gasthorn"
+    REPO_NAME = "Projet4A_PredictionsBoursieres"
+    REPO_BRANCH = "Collecte-Des-Donnees"
+    
+    # Dossier pour sauvegarder les donnees
+    SENTIMENT_FOLDER = "sentiment_data"
+    os.makedirs(SENTIMENT_FOLDER, exist_ok=True)
 
-# ====================== URLs CORRIGÉES ======================
-# REPO 1 : Où s'exécute le code (adam-hassen/stock-auto-update) - BRANCHE MAIN
-REPO1_OWNER = "adam-hassen"
-REPO1_NAME = "stock-auto-update"
-REPO1_BRANCH = "main"  # Branche main pour l'exécution
-
-# REPO 2 : Où tu veux stocker les données (Gasthorn/Projet4A_PredictionsBoursieres) - BRANCHE Collecte-Des-Données
-REPO2_OWNER = "Gasthorn"
-REPO2_NAME = "Projet4A_PredictionsBoursieres"
-REPO2_BRANCH = "Collecte-Des-Données"  # Ta branche spécifique
-
-# URLs COMPLÈTES
-REPO1_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{REPO1_OWNER}/{REPO1_NAME}.git"
-REPO2_PUBLIC_URL = f"https://github.com/{REPO2_OWNER}/{REPO2_NAME}.git"
-REPO2_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{REPO2_OWNER}/{REPO2_NAME}.git"
-
-print(f" Configuration repositories:")
-print(f"   • Repo exécution: {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
-print(f"   • Repo données: {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
-
-# Symboles à tracker
-SYMBOLS = ["AAPL", "TSLA", "MSFT", "BTC-USD", "GOOGL", "NVDA", "AMZN", "META"]
-
-# ====================== FONCTIONS UTILITAIRES ======================
-def convert_numpy_types(obj):
-    """Convertit les types NumPy en types Python natifs pour JSON"""
-    if isinstance(obj, (np.integer, np.int64, np.int32)):
-        return int(obj)
-    elif isinstance(obj, (np.floating, np.float64, np.float32)):
-        return float(obj)
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, dict):
-        return {key: convert_numpy_types(value) for key, value in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_numpy_types(item) for item in obj]
-    else:
-        return obj
-
-def check_token():
-    """Vérifie si un token est disponible"""
-    token = PUSH_TOKEN or GITHUB_TOKEN
-    if token:
-        print(f"✅ Token détecté (longueur: {len(token)})")
-        return True
-    else:
-        print("⚠️  Aucun token détecté")
-        return False
-
-# ====================== DÉTECTION D'ANOMALIES ======================
-def calculate_zscore(data):
-    """Calcule le Z-score sans scipy"""
-    if len(data) == 0:
-        return np.array([])
-    mean = np.mean(data)
-    std = np.std(data)
-    if std == 0:
-        return np.zeros(len(data))
-    return np.abs((data - mean) / std)
-
-def detect_anomalies_avancee(df, symbol):
-    """Détection avancée des anomalies dans les données financières"""
+# ==================== FONCTIONS GIT ====================
+def git_push_to_repo():
+    """Pousse les fichiers CSV vers le repo GitHub"""
     
-    anomalies = []
-    
-    # 1. ANOMALIES DE PRIX
-    returns = df['Close'].pct_change().dropna()
-    if len(returns) > 0:
-        z_scores_returns = calculate_zscore(returns)
-        extreme_returns_idx = np.where(z_scores_returns > 3)[0]
-        
-        for idx in extreme_returns_idx:
-            if idx < len(df):
-                date_anomalie = df.iloc[idx]['date']
-                prix = float(df.iloc[idx]['Close'])
-                rendement = float(returns.iloc[idx] * 100)
-                
-                anomalies.append({
-                    'symbol': symbol,
-                    'date': date_anomalie,
-                    'type': 'MOUVEMENT_EXTREME',
-                    'severite': 'HAUTE',
-                    'valeur': rendement,
-                    'description': f"Mouvement de prix extrême: {rendement:.2f}%",
-                    'prix_ce_jour': prix
-                })
-    
-    # 2. ANOMALIES DE VOLUME
-    volume_data = df['Volume'].dropna()
-    if len(volume_data) > 0:
-        volume_z_scores = calculate_zscore(volume_data)
-        high_volume_idx = np.where(volume_z_scores > 2.5)[0]
-        
-        for idx in high_volume_idx:
-            if idx < len(df):
-                date_anomalie = df.iloc[idx]['date']
-                volume = int(df.iloc[idx]['Volume'])
-                volume_moyen = float(df['Volume'].mean())
-                
-                anomalies.append({
-                    'symbol': symbol,
-                    'date': date_anomalie,
-                    'type': 'VOLUME_ANORMAL',
-                    'severite': 'MOYENNE',
-                    'valeur': volume,
-                    'description': f"Volume anormal: {volume:,.0f} vs moyenne {volume_moyen:,.0f}",
-                    'ratio_volume': float(volume / volume_moyen)
-                })
-    
-    # 3. GAPS DE PRIX
-    df['overnight_gap'] = (df['Open'] - df['Close'].shift(1)) / df['Close'].shift(1)
-    gap_data = df['overnight_gap'].dropna()
-    if len(gap_data) > 0:
-        gap_z_scores = calculate_zscore(gap_data)
-        gap_anomalies_idx = np.where(gap_z_scores > 2.5)[0]
-        
-        for idx in gap_anomalies_idx:
-            if idx < len(df):
-                date_anomalie = df.iloc[idx]['date']
-                gap_pourcentage = float(df.iloc[idx]['overnight_gap'] * 100)
-                
-                anomalies.append({
-                    'symbol': symbol,
-                    'date': date_anomalie,
-                    'type': 'GAP_OUVERTURE',
-                    'severite': 'MOYENNE',
-                    'valeur': gap_pourcentage,
-                    'description': f"Gap d'ouverture: {gap_pourcentage:.2f}%",
-                    'ouverture': float(df.iloc[idx]['Open']),
-                    'cloture_precedente': float(df.iloc[idx-1]['Close']) if idx > 0 else None
-                })
-    
-    # 4. ANOMALIES DE VOLATILITÉ
-    if len(returns) > 10:
-        volatilite_rolling = returns.rolling(window=10).std().dropna()
-        if len(volatilite_rolling) > 0:
-            vol_z_scores = calculate_zscore(volatilite_rolling)
-            high_vol_idx = np.where(vol_z_scores > 2.5)[0]
-            
-            for idx in high_vol_idx:
-                if idx + 10 < len(df):
-                    date_anomalie = df.iloc[idx + 10]['date']
-                    volatilite = float(volatilite_rolling.iloc[idx] * 100)
-                    
-                    anomalies.append({
-                        'symbol': symbol,
-                        'date': date_anomalie,
-                        'type': 'VOLATILITE_EXTREME',
-                        'severite': 'HAUTE',
-                        'valeur': volatilite,
-                        'description': f"Volatilité extrême: {volatilite:.2f}%",
-                        'periode': '10 jours'
-                    })
-    
-    # 5. CASSURES DE TENDANCE
-    for window in [20, 50]:
-        ma_col = f'MA_{window}'
-        if ma_col in df.columns:
-            cassure_hausse = (df['Close'] > df[ma_col]) & (df['Close'].shift(1) <= df[ma_col].shift(1))
-            cassure_baisse = (df['Close'] < df[ma_col]) & (df['Close'].shift(1) >= df[ma_col].shift(1))
-            
-            cassure_idx = np.where(cassure_hausse | cassure_baisse)[0]
-            
-            for idx in cassure_idx:
-                if idx < len(df):
-                    date_anomalie = df.iloc[idx]['date']
-                    direction = "HAUSSE" if cassure_hausse.iloc[idx] else "BAISSE"
-                    
-                    anomalies.append({
-                        'symbol': symbol,
-                        'date': date_anomalie,
-                        'type': 'CASSURE_TENDANCE',
-                        'severite': 'MOYENNE',
-                        'valeur': int(window),
-                        'description': f"Cassure {direction} de la MM{window}",
-                        'prix': float(df.iloc[idx]['Close']),
-                        f'MA_{window}': float(df.iloc[idx][ma_col])
-                    })
-    
-    # 6. RSI EXTRÊME
-    if 'RSI_14' in df.columns:
-        rsi_data = df['RSI_14'].dropna()
-        if len(rsi_data) > 0:
-            rsi_extreme_haut = df['RSI_14'] > 80
-            rsi_extreme_bas = df['RSI_14'] < 20
-            
-            rsi_extreme_idx = np.where(rsi_extreme_haut | rsi_extreme_bas)[0]
-            
-            for idx in rsi_extreme_idx:
-                if idx < len(df):
-                    date_anomalie = df.iloc[idx]['date']
-                    rsi_valeur = float(df.iloc[idx]['RSI_14'])
-                    condition = "SURACHAT" if rsi_extreme_haut.iloc[idx] else "SURVENDE"
-                    
-                    anomalies.append({
-                        'symbol': symbol,
-                        'date': date_anomalie,
-                        'type': 'RSI_EXTREME',
-                        'severite': 'MOYENNE',
-                        'valeur': rsi_valeur,
-                        'description': f"RSI en {condition}: {rsi_valeur:.1f}",
-                        'niveau': condition
-                    })
-    
-    return anomalies
-
-def sauvegarder_anomalies(anomalies_par_action):
-    """Sauvegarde toutes les anomalies détectées"""
-    if not any(anomalies_par_action.values()):
-        print("✅ Aucune anomalie détectée")
-        return
-    
-    toutes_anomalies = []
-    for symbol, anomalies in anomalies_par_action.items():
-        toutes_anomalies.extend(anomalies)
-    
-    df_anomalies = pd.DataFrame(toutes_anomalies)
-    df_anomalies.to_csv(f"{DATA_FOLDER}/ANOMALIES_DETECTEES.csv", index=False)
-    
-    resume_anomalies = {
-        'date_analyse': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        'total_anomalies': len(toutes_anomalies),
-        'par_type': convert_numpy_types(df_anomalies['type'].value_counts().to_dict()),
-        'par_severite': convert_numpy_types(df_anomalies['severite'].value_counts().to_dict()),
-        'par_action': convert_numpy_types(df_anomalies['symbol'].value_counts().to_dict()),
-        'anomalies_recentes': convert_numpy_types(sorted(toutes_anomalies, 
-                                   key=lambda x: x['date'], 
-                                   reverse=True)[:10])
-    }
-    
-    with open(f"{DATA_FOLDER}/resume_anomalies.json", "w") as f:
-        json.dump(resume_anomalies, f, indent=2, ensure_ascii=False)
-    
-    print(f"✅ {len(toutes_anomalies)} anomalies détectées et sauvegardées")
-    if resume_anomalies['par_type']:
-        print(f"    Répartition: {resume_anomalies['par_type']}")
-
-# ====================== NETTOYAGE DES DONNÉES ======================
-def clean_data(df, symbol):
-    """Nettoyage des données financières"""
-    df = df.drop_duplicates(subset=['date']).sort_values('date').reset_index(drop=True)
-    
-    numeric_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
-    for col in numeric_cols:
-        if col in df.columns:
-            df[col] = df[col].fillna(method='ffill').fillna(method='bfill')
-    
-    df = df[df['Close'] > 0]
-    df = df.dropna(subset=['Close'])
-    
-    df['date'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m-%d')
-    df['symbol'] = symbol
-    
-    return df
-
-# ====================== FEATURES ESSENTIELLES ======================
-def create_essential_features(df, symbol):
-    """Features les plus importantes seulement"""
-    df = df.sort_values('date').reset_index(drop=True)
-    
-    df['daily_return'] = df['Close'].pct_change()
-    df['volatility_10'] = df['daily_return'].rolling(10).std()
-    
-    for window in [5, 20, 50]:
-        df[f'MA_{window}'] = df['Close'].rolling(window).mean()
-    
-    def calculate_rsi(prices, window=14):
-        delta = prices.diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
-        rs = gain / loss
-        return 100 - (100 / (1 + rs))
-    
-    df['RSI_14'] = calculate_rsi(df['Close'])
-    
-    df['volume_MA_5'] = df['Volume'].rolling(5).mean()
-    df['volume_ratio'] = df['Volume'] / df['volume_MA_5']
-    
-    df['target_3_days'] = (df['Close'].shift(-3) / df['Close']) - 1
-    df['target_direction'] = (df['target_3_days'] > 0).astype(int)
-    
-    df = df.dropna()
-    
-    print(f"✅ {symbol}: {len(df)} lignes avec features")
-    return df
-
-# ====================== SAUVEGARDE DES VERSIONS ======================
-def save_all_versions(df_clean, df_features, symbol, all_cleaned_data, all_features_data):
-    """Sauvegarde les 3 versions des données"""
-    
-    df_features.to_csv(f"{DATA_FOLDER}/{symbol}.csv", index=False)
-    all_cleaned_data.append(df_clean)
-    all_features_data.append(df_features)
-    
-    print(f" {symbol}.csv sauvegardé")
-
-def save_combined_files(all_cleaned_data, all_features_data):
-    """Sauvegarde les fichiers combinés"""
-    
-    combined_cleaned = pd.concat(all_cleaned_data, ignore_index=True)
-    combined_cleaned.to_csv(f"{DATA_FOLDER}/ALL_CLEANED.csv", index=False)
-    print(" ALL_CLEANED.csv sauvegardé")
-    
-    combined_features = pd.concat(all_features_data, ignore_index=True)
-    combined_features.to_csv(f"{DATA_FOLDER}/ALL_FEATURES.csv", index=False)
-    print(" ALL_FEATURES.csv sauvegardé")
-    
-    return combined_cleaned, combined_features
-
-def generate_simple_report(combined_cleaned):
-    """Rapport simple des données disponibles"""
-    print(" Génération du rapport...")
-    
-    report_data = []
-    
-    for symbol in SYMBOLS:
-        symbol_data = combined_cleaned[combined_cleaned['symbol'] == symbol]
-        if len(symbol_data) > 0:
-            report_data.append({
-                'symbol': symbol,
-                'start_date': symbol_data['date'].min(),
-                'end_date': symbol_data['date'].max(),
-                'days_count': int(len(symbol_data)),
-                'last_price': float(symbol_data['Close'].iloc[-1]),
-                'last_volume': int(symbol_data['Volume'].iloc[-1]),
-                'update_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            })
-    
-    if report_data:
-        report_df = pd.DataFrame(report_data)
-        report_df.to_csv(f"{DATA_FOLDER}/data_report.csv", index=False)
-        print("✅ Rapport généré")
-    
-    return report_df
-
-# ====================== COLLECTE YFINANCE ======================
-def collect_yfinance():
-    """Collecte principale des données yFinance - VERSION AVEC TOUTES LES DONNÉES"""
-    all_cleaned_data = []
-    all_features_data = []
-    anomalies_par_action = {}
-    
-    print("Collecte des données yFinance...")
-    print(f"Date du jour: {datetime.now().strftime('%Y-%m-%d')}")
-    
-    for symbol in SYMBOLS:
-        try:
-            print(f"\n Récupération {symbol}...")
-            ticker = yf.Ticker(symbol)
-            
-            # ANCIENNE VERSION - TOUTES LES DONNÉES DEPUIS 2023
-            start_date = "2023-01-01"
-            end_date = datetime.now().strftime('%Y-%m-%d')
-            
-            # Essayer d'abord avec period="max" pour avoir le maximum
-            try:
-                df = ticker.history(period="max")
-                print(f"    Récupération MAXIMUM de données")
-            except:
-                # Fallback sur les dates
-                df = ticker.history(start=start_date, end=end_date)
-                print(f"    Récupération depuis {start_date}")
-            
-            if df.empty:
-                print(f"⚠️  Aucune donnée pour {symbol}")
-                continue
-            
-            dates_collectees = df.index.strftime('%Y-%m-%d').tolist()
-            print(f"    Période: {min(dates_collectees)} → {max(dates_collectees)} ({len(df)} jours)")
-            
-            df = df.reset_index()
-            df['symbol'] = symbol
-            df['date'] = df['Date'].dt.strftime('%Y-%m-%d')
-            df = df[['date', 'Open', 'High', 'Low', 'Close', 'Volume', 'symbol']]
-            
-            # FILTRE IMPORTANT : supprimer les dates futures
-            today = datetime.now().strftime('%Y-%m-%d')
-            df = df[df['date'] <= today]
-            
-            if df.empty:
-                print(f"  Aucune donnée valide après filtrage pour {symbol}")
-                continue
-            
-            # Nettoyage
-            df_clean = clean_data(df, symbol)
-            
-            # Features - MAIS on garde seulement les 180 derniers jours pour les features
-            # pour éviter d'avoir trop de NaN au début
-            print(f"     Création des features...")
-            
-            # Pour les features, on prend les 180 derniers jours
-            df_recent = df_clean.copy()
-            # On calcule la date limite pour garder assez de données pour les MAs
-            cutoff_date = (datetime.now() - timedelta(days=200)).strftime('%Y-%m-%d')
-            df_recent = df_recent[df_recent['date'] >= cutoff_date]
-            
-            df_features = create_essential_features(df_recent, symbol)
-            
-            print(f"   🔍 Analyse des anomalies...")
-            anomalies = detect_anomalies_avancee(df_features, symbol)
-            anomalies_par_action[symbol] = anomalies
-            
-            if anomalies:
-                print(f"   ⚠️  {len(anomalies)} anomalies détectées")
-            else:
-                print(f"   ✅ Aucune anomalie")
-            
-            # Sauvegarde des fichiers
-            df_features.to_csv(f"{DATA_FOLDER}/{symbol}.csv", index=False)
-            all_cleaned_data.append(df_clean)
-            all_features_data.append(df_features)
-            
-            print(f"💾 {symbol}.csv sauvegardé ({len(df_clean)} lignes brutes, {len(df_features)} lignes avec features)")
-            
-        except Exception as e:
-            print(f"❌ Erreur avec {symbol}: {str(e)[:100]}...")
-    
-    if all_cleaned_data:
-        combined_cleaned, combined_features = save_combined_files(all_cleaned_data, all_features_data)
-        data_report = generate_simple_report(combined_cleaned)
-        sauvegarder_anomalies(anomalies_par_action)
-        
-        print(f"\n✅ Collecte terminée avec succès!")
-        print(f"   • {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)} actions récupérées")
-        print(f"   • ALL_CLEANED.csv: {len(combined_cleaned)} lignes (toutes données depuis 2023)")
-        print(f"   • ALL_FEATURES.csv: {len(combined_features)} lignes (180 derniers jours)")
-        
-        return combined_cleaned, combined_features, data_report
-    else:
-        raise Exception("❌ Aucune donnée collectée")
-
-# ====================== GIT ACTIONS POUR REPO D'EXÉCUTION ======================
-def git_actions_repo1():
-    """Gère les actions Git pour le repo d'exécution (adam-hassen/stock-auto-update) - MAIN"""
-    print("\n" + "="*50)
-    print(f" Actions Git - REPO D'EXÉCUTION...")
-    print(f"    {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
-    
-    if not PUSH_TOKEN:
-        print("❌ PUSH_TOKEN non configuré")
+    if not Config.PUSH_TOKEN:
+        print("PUSH_TOKEN non configure. Impossible de pousser vers GitHub.")
         return False
     
-    # Configurer Git
-    subprocess.run(["git", "config", "user.email", "github-actions@github.com"], 
-                   capture_output=True, text=True)
-    subprocess.run(["git", "config", "user.name", "GitHub Actions Bot"], 
-                   capture_output=True, text=True)
+    print("\n" + "="*60)
+    print("Preparation du push vers GitHub...")
+    print(f"Repo: {Config.REPO_OWNER}/{Config.REPO_NAME}")
+    print(f"Branche: {Config.REPO_BRANCH}")
+    print("="*60)
     
-    # Vérifier sur quelle branche on est
-    branch_check = subprocess.run(["git", "branch", "--show-current"], 
-                                capture_output=True, text=True)
-    current_branch = branch_check.stdout.strip()
-    
-    if current_branch != REPO1_BRANCH:
-        print(f" Switching de '{current_branch}' à '{REPO1_BRANCH}'...")
-        subprocess.run(["git", "checkout", REPO1_BRANCH], 
-                       capture_output=True, text=True)
-    
-    # Ajouter les fichiers data
-    subprocess.run(["git", "add", DATA_FOLDER], 
-                   capture_output=True, text=True)
-    
-    # Vérifier s'il y a des changements
-    status_result = subprocess.run(["git", "status", "--porcelain"], 
-                                 capture_output=True, text=True)
-    
-    if not status_result.stdout.strip():
-        print("✅ Aucun changement dans le repo d'exécution")
-        return False
-    
-    # Commit
-    commit_msg = f" Update données financières {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-    commit_result = subprocess.run(["git", "commit", "-m", commit_msg], 
-                                 capture_output=True, text=True)
-    
-    if commit_result.returncode != 0:
-        print(f"⚠️  Erreur commit: {commit_result.stderr[:200]}")
-        return False
-    
-    # Push vers la branche main
-    print(f"  Pushing vers {REPO1_BRANCH}...")
-    push_result = subprocess.run(["git", "push", REPO1_URL, f"HEAD:{REPO1_BRANCH}", "--force"], 
-                               capture_output=True, text=True)
-    
-    if push_result.returncode == 0:
-        print(f"✅ Push réussi sur la branche {REPO1_BRANCH}!")
-        print(f"    https://github.com/{REPO1_OWNER}/{REPO1_NAME}/tree/{REPO1_BRANCH}")
-        return True
-    else:
-        print(f"❌ Erreur push: {push_result.stderr[:200]}")
-        return False
-
-# ====================== PUSH VERS REPO DE DONNÉES (sur branche Collecte-Des-Données) ======================
-def push_to_data_repo(combined_cleaned, combined_features, data_report):
-    """Push les fichiers CSV vers le repo de données sur la branche Collecte-Des-Données"""
-    print("\n" + "="*50)
-    print(" Préparation du REPO DE DONNÉES...")
-    print(f"    {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
-    
-    if not PUSH_TOKEN:
-        print("❌ PUSH_TOKEN non configuré")
-        return False
-    
-    print(f"✅ Token disponible")
-    
+    # Creer un dossier temporaire
     temp_dir = tempfile.mkdtemp()
     original_dir = os.getcwd()
     
     try:
-        print(f" Dossier temporaire: {temp_dir}")
+        print(f"Dossier temporaire: {temp_dir}")
         os.chdir(temp_dir)
         
         # Initialiser un nouveau repo git
         subprocess.run(["git", "init"], check=True, capture_output=True)
-        subprocess.run(["git", "config", "user.email", "data-pipeline@github.com"], check=False)
-        subprocess.run(["git", "config", "user.name", "Financial Data Bot"], check=False)
+        subprocess.run(["git", "config", "user.email", "sentiment-bot@github.com"], check=False)
+        subprocess.run(["git", "config", "user.name", "Sentiment Analysis Bot"], check=False)
         
-        # Créer la structure
-        os.makedirs("data", exist_ok=True)
+        # Creer la structure de dossiers
+        os.makedirs("sentiment", exist_ok=True)
         
-        # Sauvegarder les fichiers principaux
-        print(" Sauvegarde des fichiers...")
+        # Copier tous les fichiers CSV de sentiment
+        csv_files = glob.glob(f"{original_dir}/articles_*.csv")
         
-        if combined_cleaned is not None and not combined_cleaned.empty:
-            combined_cleaned.to_csv("data/ALL_CLEANED.csv", index=False)
-            print(f"   • ALL_CLEANED.csv: {len(combined_cleaned)} lignes")
+        if not csv_files:
+            print("Aucun fichier CSV trouve a pousser")
+            return False
         
-        if combined_features is not None and not combined_features.empty:
-            combined_features.to_csv("data/ALL_FEATURES.csv", index=False)
-            print(f"   • ALL_FEATURES.csv: {len(combined_features)} lignes")
+        print(f"Fichiers a pousser: {len(csv_files)}")
         
-        if data_report is not None and not data_report.empty:
-            data_report.to_csv("data/data_report.csv", index=False)
-            print(f"   • data_report.csv: {len(data_report)} actions")
+        # Copier chaque fichier
+        for csv_file in csv_files:
+            filename = os.path.basename(csv_file)
+            dest_path = os.path.join("sentiment", filename)
+            shutil.copy2(csv_file, dest_path)
+            print(f"  -> sentiment/{filename}")
         
-        # Ajouter un README spécifique
-        readme_content = f"""#  Données Financières - Projet 4A
+        # Copier aussi les fichiers du dossier sentiment_data
+        sentiment_data_dir = os.path.join(original_dir, Config.SENTIMENT_FOLDER)
+        if os.path.exists(sentiment_data_dir):
+            sentiment_files = glob.glob(f"{sentiment_data_dir}/*.csv")
+            for s_file in sentiment_files:
+                s_filename = os.path.basename(s_file)
+                dest_path = os.path.join("sentiment", s_filename)
+                shutil.copy2(s_file, dest_path)
+                print(f"  -> sentiment/{s_filename}")
+        
+        # Creer un README specifique
+        readme_content = f"""# Donnees d'Analyse de Sentiment
 
-*Dernière mise à jour: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
+*Derniere mise a jour: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
 
-##  Fichiers disponibles
+## Description
 
-Cette branche (`{REPO2_BRANCH}`) contient les données financières collectées automatiquement.
+Ce dossier contient les articles financiers pour differentes entreprises.
+Les articles sont recuperes via NewsAPI.
 
-| Fichier | Description | Taille |
-|---------|-------------|--------|
-| `data/ALL_CLEANED.csv` | Données brutes nettoyées | {len(combined_cleaned) if combined_cleaned is not None else 0} lignes |
-| `data/ALL_FEATURES.csv` | Données avec indicateurs techniques | {len(combined_features) if combined_features is not None else 0} lignes |
-| `data/data_report.csv` | Rapport des données disponibles | {len(data_report) if data_report is not None else 0} actions |
+## Entreprises analysees
 
-##  Symboles suivis
+- Apple (AAPL)
+- Microsoft (MSFT)  
+- Tesla (TSLA)
+- Nvidia (NVDA)
 
-{', '.join(SYMBOLS)}
+## Fichiers disponibles
 
-##  Source des données
+Chaque fichier contient les articles pour une entreprise specifique.
+Colonnes principales:
 
-Données collectées depuis Yahoo Finance via l'API yFinance.
-Mises à jour automatiques quotidiennes à 20h (heure française).
+| Colonne | Description |
+|---------|-------------|
+| date | Date de publication de l'article |
+| source | Source de l'article (Reuters, Bloomberg, etc.) |
+| titre | Titre de l'article |
+| contenu | Contenu de l'article |
 
-##  Indicateurs inclus
-
-Pour chaque symbole:
-- Prix (Open, High, Low, Close, Volume)
-- Retours journaliers
-- Volatilité (10 jours)
-- Moyennes mobiles (5, 20, 50 jours)
-- RSI (14 jours)
-- Ratio de volume
 ---
 
-*Généré automatiquement par GitHub Actions depuis [stock-auto-update](https://github.com/{REPO1_OWNER}/{REPO1_NAME})*
+*Genere automatiquement par GitHub Actions*
 """
-        
-        with open("README.md", "w", encoding="utf-8") as f:
+
+        with open("sentiment/README.md", "w", encoding="utf-8") as f:
             f.write(readme_content)
         
         # Ajouter un .gitignore
@@ -607,41 +135,42 @@ Pour chaque symbole:
         subprocess.run(["git", "add", "."], check=True, capture_output=True)
         
         # Commit
-        commit_msg = f" Mise à jour données {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        commit_msg = f"Mise a jour articles {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         commit_result = subprocess.run(["git", "commit", "-m", commit_msg], 
                                      capture_output=True, text=True)
         
         if commit_result.returncode != 0 and "nothing to commit" not in commit_result.stdout:
-            print(f"❌ Erreur commit: {commit_result.stderr}")
+            print(f"Erreur commit: {commit_result.stderr}")
             return False
         
-        # Créer la branche Collecte-Des-Données (pas main!)
-        subprocess.run(["git", "branch", "-M", REPO2_BRANCH], check=True, capture_output=True)
+        # Creer la branche specifiee
+        subprocess.run(["git", "branch", "-M", Config.REPO_BRANCH], check=True, capture_output=True)
+        
+        # URL du repo avec token
+        repo_url = f"https://x-access-token:{Config.PUSH_TOKEN}@github.com/{Config.REPO_OWNER}/{Config.REPO_NAME}.git"
         
         # Ajouter le remote
-        print(f" Connexion au repo {REPO2_OWNER}/{REPO2_NAME}...")
-        
-        remote_add = subprocess.run(["git", "remote", "add", "origin", REPO2_URL], 
+        remote_add = subprocess.run(["git", "remote", "add", "origin", repo_url], 
                                   capture_output=True, text=True)
         
         if remote_add.returncode != 0:
-            print(f"  Remote déjà configuré")
+            print("Remote deja configure")
         
-        # Force push vers la branche Collecte-Des-Données
-        print(f"  Pushing vers la branche {REPO2_BRANCH}...")
-        push_result = subprocess.run(["git", "push", "--force", "origin", REPO2_BRANCH], 
+        # Force push vers la branche
+        print(f"Pushing vers la branche {Config.REPO_BRANCH}...")
+        push_result = subprocess.run(["git", "push", "--force", "origin", Config.REPO_BRANCH], 
                                    capture_output=True, text=True)
         
         if push_result.returncode == 0:
-            print(f"✅ Push réussi sur la branche {REPO2_BRANCH}!")
-            print(f" {REPO2_PUBLIC_URL}/tree/{REPO2_BRANCH}")
+            print(f"Push reussi sur la branche {Config.REPO_BRANCH}!")
+            print(f"https://github.com/{Config.REPO_OWNER}/{Config.REPO_NAME}/tree/{Config.REPO_BRANCH}")
             return True
         else:
-            print(f"❌ Erreur push: {push_result.stderr[:200]}")
+            print(f"Erreur push: {push_result.stderr[:200]}")
             return False
             
     except Exception as e:
-        print(f"❌ Erreur: {e}")
+        print(f"Erreur: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -652,69 +181,324 @@ Pour chaque symbole:
         except:
             pass
 
-# ====================== MAIN ======================
+# ==================== CORE API FUNCTIONS ====================
+class NewsAPIClient:
+    """Client pour recuperer les articles"""
+
+    @staticmethod
+    def get_news_api_articles(query: str, api_key: str, max_results: int = 10) -> List[Dict[str, Any]]:
+        """Recupere les articles via NewsAPI"""
+        from_date = (datetime.now() - timedelta(days=Config.DAYS_BACK)).strftime('%Y-%m-%d')
+
+        url = "https://newsapi.org/v2/everything"
+        params = {
+            'q': f'{query} AND (stock OR shares OR earnings OR revenue OR market)',
+            'apiKey': api_key,
+            'pageSize': max_results,
+            'language': 'en',
+            'sortBy': 'relevancy',
+            'from': from_date,
+        }
+
+        try:
+            response = requests.get(url, params=params, timeout=15)
+            if response.status_code == 200:
+                return response.json().get('articles', [])
+            else:
+                print(f"NewsAPI Erreur {response.status_code}")
+                return []
+        except Exception as e:
+            print(f"Erreur connexion: {e}")
+            return []
+
+# ==================== ANALYSE SIMPLE ====================
+class SimpleSentimentAnalyzer:
+    """Analyseur de sentiment simple sans transformers"""
+    
+    def __init__(self):
+        print("Analyseur simple initialise (sans FinBERT)")
+        # Liste de mots positifs et negatifs pour analyse basique
+        self.positive_words = [
+            'profit', 'gain', 'growth', 'increase', 'rise', 'up', 'positive',
+            'strong', 'beat', 'success', 'win', 'bullish', 'optimistic', 'good'
+        ]
+        
+        self.negative_words = [
+            'loss', 'decline', 'decrease', 'fall', 'down', 'negative',
+            'weak', 'miss', 'fail', 'bearish', 'pessimistic', 'bad', 'drop'
+        ]
+    
+    def build_query(self, ticker: str, company_name: str) -> str:
+        """Construit une requete pour l'entreprise"""
+        return f'"{company_name}" OR {ticker}'
+    
+    def simple_sentiment_analysis(self, text: str) -> Dict[str, Any]:
+        """Analyse sentiment simple basee sur les mots cles"""
+        try:
+            text_lower = str(text).lower().strip()
+            
+            if len(text_lower) < 20:
+                return {'score': 0, 'label': 'neutral', 'confidence': 0.1}
+            
+            # Compter les mots positifs et negatifs
+            positive_count = sum(1 for word in self.positive_words if word in text_lower)
+            negative_count = sum(1 for word in self.negative_words if word in text_lower)
+            
+            # Calculer le score simple
+            total_words = positive_count + negative_count
+            if total_words == 0:
+                return {'score': 0, 'label': 'neutral', 'confidence': 0.1}
+            
+            score = (positive_count - negative_count) / total_words
+            score = max(-1.0, min(1.0, score))
+            
+            # Determiner le label
+            if score > 0.1:
+                label = 'positive'
+            elif score < -0.1:
+                label = 'negative'
+            else:
+                label = 'neutral'
+            
+            # Calculer la confiance (simple)
+            confidence = min(1.0, total_words / 10)  # Plus de mots trouves = plus de confiance
+            
+            return {
+                'score': score,
+                'label': label,
+                'confidence': confidence
+            }
+            
+        except Exception as e:
+            print(f"Erreur analyse simple: {e}")
+            return {'score': 0, 'label': 'neutral', 'confidence': 0.1}
+    
+    def calculate_weight(self, article: Dict[str, Any]) -> float:
+        """Calcule l'importance de l'article"""
+        weight = 1.0
+
+        # 1. Actualite
+        if 'publishedAt' in article and article['publishedAt']:
+            try:
+                pub_str = str(article['publishedAt'])
+                if 'T' in pub_str:
+                    pub_date = datetime.strptime(pub_str, '%Y-%m-%dT%H:%M:%SZ')
+                else:
+                    pub_date = datetime.strptime(pub_str, '%Y-%m-%d %H:%M:%S')
+
+                hours_old = (datetime.now() - pub_date).total_seconds() / 3600
+                if hours_old <= 24:
+                    weight *= 1.3
+                elif hours_old <= 48:
+                    weight *= 1.1
+                else:
+                    weight *= 0.9
+            except:
+                pass
+
+        # 2. Source
+        source_name = article.get('source', {}).get('name', '').lower()
+        
+        # Sources importantes
+        important_sources = ['reuters', 'bloomberg', 'cnbc', 'financial times', 'wall street journal']
+        if any(source in source_name for source in important_sources):
+            weight *= 1.5
+        # Blogs personnels
+        elif any(blog in source_name for blog in ['blog', 'personal', 'medium']):
+            weight *= 0.6
+
+        # 3. Longueur
+        title = str(article.get('title', ''))
+        description = str(article.get('description', ''))
+        content_length = len(title + description)
+
+        if content_length > 300:
+            weight *= 1.2
+        elif content_length < 100:
+            weight *= 0.8
+
+        # Limites
+        return max(0.2, min(weight, 3.0))
+    
+    def analyze_company(self, ticker: str, company_name: str) -> pd.DataFrame:
+        """Analyse les articles d'une entreprise"""
+        print(f"\n{'='*60}")
+        print(f"ANALYSE POUR {company_name} ({ticker})")
+        print(f"{'='*60}")
+
+        # Recuperation des articles
+        articles = NewsAPIClient.get_news_api_articles(
+            self.build_query(ticker, company_name),
+            Config.NEWSAPI_KEY,
+            Config.MAX_ARTICLES
+        )
+
+        if not articles:
+            print("Aucun article trouve")
+            return pd.DataFrame()
+
+        analyzed_articles = []
+        
+        print(f"\n{len(articles)} articles trouves:")
+        print("-" * 60)
+
+        for i, article in enumerate(articles, 1):
+            # Texte complet
+            title = str(article.get('title', 'Sans titre')).strip()
+            description = str(article.get('description', '')).strip()
+            content = f"{title}. {description}"
+
+            # Analyse sentiment simple
+            sentiment = self.simple_sentiment_analysis(content)
+            
+            # Calcul poids
+            weight = self.calculate_weight(article)
+            
+            # Score pondere
+            weighted_score = sentiment['score'] * weight
+
+            # Date
+            pub_date = "Inconnue"
+            if 'publishedAt' in article and article['publishedAt']:
+                try:
+                    date_str = str(article['publishedAt'])
+                    if 'T' in date_str:
+                        pub_date = datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%d %H:%M')
+                    else:
+                        pub_date = date_str[:16]
+                except:
+                    pub_date = date_str[:10] if len(date_str) >= 10 else "Inconnue"
+
+            # Source
+            source_name = article.get('source', {}).get('name', 'Inconnue')
+
+            # Article complet
+            analyzed_article = {
+                'id': i,
+                'date': pub_date,
+                'source': str(source_name),
+                'titre': title[:100] + '...' if len(title) > 100 else title,
+                'contenu': content[:200] + '...' if len(content) > 200 else content,
+                'score': round(sentiment['score'], 3),
+                'sentiment': sentiment['label'],
+                'confiance': round(sentiment['confidence'], 3),
+                'poids': round(weight, 2),
+                'score_pondere': round(weighted_score, 3),
+                'url': article.get('url', '')
+            }
+
+            analyzed_articles.append(analyzed_article)
+
+            # Affichage simple
+            print(f"Article {i}: {title[:50]}...")
+            print(f"  Score: {sentiment['score']:.3f} | Sentiment: {sentiment['label']} | Source: {source_name}")
+
+        # Creation du DataFrame
+        df = pd.DataFrame(analyzed_articles)
+
+        # Sauvegarde CSV dans le dossier sentiment_data
+        if not df.empty:
+            filename = f"{Config.SENTIMENT_FOLDER}/articles_{ticker}_{datetime.now().strftime('%Y%m%d')}.csv"
+            df.to_csv(filename, index=False, encoding='utf-8')
+            print(f"\nDonnees sauvegardees: {filename}")
+            
+            # Statistiques simples
+            positif = len(df[df['score'] > 0.1])
+            negatif = len(df[df['score'] < -0.1])
+            neutre = len(df) - positif - negatif
+            
+            print(f"\nRESUME:")
+            print(f"  Articles positifs: {positif}")
+            print(f"  Articles negatifs: {negatif}")
+            print(f"  Articles neutres: {neutre}")
+            print(f"  Score moyen: {df['score'].mean():.3f}")
+
+        return df
+
+# ==================== EXECUTION PRINCIPALE ====================
+def main():
+    """Fonction principale"""
+    print("DEBUT DE L'ANALYSE D'ARTICLES")
+    print(f"Source: {Config.API_SOURCE}")
+    print(f"Periode: {Config.DAYS_BACK} jours")
+    print("=" * 60)
+
+    # Initialisation
+    analyzer = SimpleSentimentAnalyzer()
+
+    # Entreprises a analyser
+    entreprises = [
+        {'ticker': 'AAPL', 'name': 'Apple'},
+        {'ticker': 'MSFT', 'name': 'Microsoft'},
+        {'ticker': 'TSLA', 'name': 'Tesla'},
+        {'ticker': 'NVDA', 'name': 'Nvidia'},
+    ]
+
+    # Analyse de chaque entreprise
+    all_dataframes = []
+    
+    for entreprise in entreprises:
+        print(f"\nAnalyse de {entreprise['name']} ({entreprise['ticker']})...")
+        df = analyzer.analyze_company(entreprise['ticker'], entreprise['name'])
+        
+        if df is not None and not df.empty:
+            all_dataframes.append(df)
+            
+            # Afficher les meilleurs articles
+            print(f"\nTop 3 articles:")
+            top_articles = df.nlargest(3, 'score_pondere')
+            for idx, (_, article) in enumerate(top_articles.iterrows(), 1):
+                print(f"\n{idx}. {article['titre']}")
+                print(f"   Score: {article['score']:.3f} | Source: {article['source']}")
+                print(f"   Date: {article['date']}")
+        
+        print("\n" + "=" * 60)
+
+    # Sauvegarder un fichier combine si on a des donnees
+    if all_dataframes:
+        combined_df = pd.concat(all_dataframes, ignore_index=True)
+        combined_filename = f"{Config.SENTIMENT_FOLDER}/ALL_ARTICLES_{datetime.now().strftime('%Y%m%d')}.csv"
+        combined_df.to_csv(combined_filename, index=False)
+        print(f"Fichier combine sauvegarde: {combined_filename}")
+
+    print("\nANALYSE TERMINEE")
+    
+    # Push vers GitHub
+    if Config.PUSH_TOKEN:
+        print("\n" + "="*60)
+        print("PUSH VERS GITHUB...")
+        success = git_push_to_repo()
+        if success:
+            print("SUCCES: Articles pousses vers GitHub")
+        else:
+            print("ECHEC: Probleme avec le push GitHub")
+        print("="*60)
+    
+    return all_dataframes
+
+# ==================== LANCEMENT ====================
 if __name__ == "__main__":
-    print(" DÉBUT PIPELINE COMPLÈTE")
-    print("="*60)
-    print(f" Token utilisé: {'✅ PUSH_TOKEN' if PUSH_TOKEN else '❌ AUCUN'}")
-    print(f" Repo exécution: {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
-    print(f" Repo données: {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
-    print("="*60)
+    # Test connexion
+    print("Test de connexion NewsAPI...")
     
     try:
-        # 1. Vérifier le token
-        has_token = check_token()
-        
-        # 2. Collecter et traiter les données
-        combined_cleaned, combined_features, data_report = collect_yfinance()
-        
-        # 3. Push vers le repo d'exécution (main)
-        repo1_success = False
-        if has_token:
-            repo1_success = git_actions_repo1()
+        test_url = f"https://newsapi.org/v2/everything?q=test&apiKey={Config.NEWSAPI_KEY}&pageSize=1"
+        response = requests.get(test_url, timeout=10)
+        if response.status_code == 200:
+            print("Connexion NewsAPI OK")
         else:
-            print("\n" + "="*50)
-            print("⚠️  Pas de token, skip du repo d'exécution")
-        
-        # 4. Push vers le repo de données (Collecte-Des-Données)
-        repo2_success = False
-        if has_token:
-            repo2_success = push_to_data_repo(combined_cleaned, combined_features, data_report)
-        else:
-            print("\n" + "="*50)
-            print("⚠️  Pas de token, skip du repo de données")
-        
-        # 5. Résumé final
-        print("\n" + "="*60)
-        print("🎉 RÉSUMÉ DE L'EXÉCUTION:")
-        print("-"*60)
-        
-        if repo1_success:
-            print(f"✅ REPO EXÉCUTION: Code + données mis à jour")
-            print(f"    https://github.com/{REPO1_OWNER}/{REPO1_NAME}/tree/{REPO1_BRANCH}")
-        elif has_token:
-            print("  REPO EXÉCUTION: Aucun changement détecté")
-        else:
-            print("⚠️  REPO EXÉCUTION: Skippé (pas de token)")
-        
-        if repo2_success:
-            print(f"✅ REPO DONNÉES: Données publiées sur '{REPO2_BRANCH}'")
-            print(f"    {REPO2_PUBLIC_URL}/tree/{REPO2_BRANCH}")
-        elif has_token:
-            print("❌ REPO DONNÉES: Échec de la publication")
-        else:
-            print("⚠️  REPO DONNÉES: Skippé (pas de token)")
-        
-        print("\n STATISTIQUES FINALES:")
-        print(f"   • Actions traitées: {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)}")
-        print(f"   • Données totales: {len(combined_cleaned) if combined_cleaned is not None else 0} lignes")
-        print(f"   • Anomalies détectées: Voir {DATA_FOLDER}/ANOMALIES_DETECTEES.csv")
-        print(f"   • Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print("="*60)
-        print("🏁 PIPELINE TERMINÉE")
-        
+            print(f"Erreur NewsAPI: {response.status_code}")
+            print(f"Message: {response.text[:200]}")
     except Exception as e:
-        print(f"\n ERREUR CRITIQUE: {e}")
-        import traceback
-        traceback.print_exc()
-        exit(1)
+        print(f"Connexion NewsAPI echouee: {e}")
+
+    print("\n" + "=" * 60)  
+
+    # Lancement
+    main()
+
+    print("\nUtilisation des resultats:")
+    print("1. Les fichiers CSV contiennent tous les articles")
+    print("2. Colonnes: date, source, titre, contenu, score, sentiment")
+    print("3. Donnees sauvegardees dans: sentiment_data/")
+    print("4. Poussees automatiquement sur GitHub")
