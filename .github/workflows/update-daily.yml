@@ -34,7 +34,7 @@ jobs:
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-        run: python sentiment_analysis_simple.py
+        run: python sentiment_analysis.py
 
       - name: List generated files
         run: |
