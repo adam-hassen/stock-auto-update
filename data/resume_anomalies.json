@@ -1,21 +1,21 @@
 {
-  "date_analyse": "2026-01-12 18:37:19",
-  "total_anomalies": 248,
+  "date_analyse": "2026-01-12 20:51:53",
+  "total_anomalies": 247,
   "par_type": {
     "CASSURE_TENDANCE": 149,
     "RSI_EXTREME": 46,
     "VOLUME_ANORMAL": 23,
     "GAP_OUVERTURE": 20,
     "MOUVEMENT_EXTREME": 7,
-    "VOLATILITE_EXTREME": 3
+    "VOLATILITE_EXTREME": 2
   },
   "par_severite": {
     "MOYENNE": 238,
-    "HAUTE": 10
+    "HAUTE": 9
   },
   "par_action": {
     "BTC-USD": 43,
-    "AMZN": 36,
+    "AMZN": 35,
     "META": 34,
     "GOOGL": 33,
     "TSLA": 28,
