@@ -8,45 +8,113 @@ on:
 jobs:
   collect-data:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
     
     steps:
-      - uses: actions/checkout@v4
+      - name:  Checkout repository
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.PUSH_TOKEN }}
+          fetch-depth: 0
 
-      - name: Setup Python
+      - name:  Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
+      - name:  Clean disk space
         run: |
-          pip install yfinance pandas numpy requests
-          pip install transformers torch scikit-learn
+          # Libérer de l'espace disque
+          sudo apt-get clean
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          rm -rf ~/.cache/pip
+          df -h
 
-      - name: Run Financial Data Pipeline (yFinance)
-        env:
-          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
-        run: python data_pipeline.py
+      - name:  Install core dependencies
+        run: |
+          # Installer d'abord les petits packages
+          pip install --no-cache-dir yfinance pandas numpy requests
 
-      - name: Run Sentiment Analysis (NewsAPI)
+      - name:  Install ML dependencies (CPU only)
+        run: |
+          # Installer torch CPU-only (beaucoup plus léger)
+          pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+          
+          # Installer transformers
+          pip install --no-cache-dir transformers
+          
+          # Installer scikit-learn si nécessaire
+          pip install --no-cache-dir scikit-learn
+          
+          # Nettoyer le cache pip
+          pip cache purge
+
+      - name:  Set environment variables
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
           NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
           GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
-        run: python sentiment_analysis.py
+        run: |
+          echo "Environment variables configured"
 
-      - name: Verify generated files
+      - name:  Run Financial Data Pipeline (yFinance)
+        env:
+          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+        run: |
+          echo "Starting financial data pipeline..."
+          python data_pipeline.py
+          echo "Financial data pipeline completed."
+
+      - name:  Run Sentiment Analysis
+        env:
+          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
+        run: |
+          echo "Starting sentiment analysis..."
+          python sentiment_analysis.py
+          echo "Sentiment analysis completed."
+
+      - name:  Verify generated files
         run: |
           echo "=== Generated CSV files ==="
-          find . -name "*.csv" -type f | sort
+          find . -name "*.csv" -type f | sort | xargs ls -lh
           
           echo ""
           echo "=== Data folder ==="
-          ls -la data/
+          ls -la data/ 2>/dev/null || echo "data/ folder not found"
           
           echo ""
           echo "=== Sentiment folder ==="
-          ls -la sentiment_data/
+          ls -la sentiment_data/ 2>/dev/null || echo "sentiment_data/ folder not found"
+          
+          echo ""
+          echo "=== All CSV files details ==="
+          for file in $(find . -name "*.csv" -type f); do
+            echo "File: $file"
+            wc -l "$file"
+          done
+
+      - name:  Archive results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis-results-$(date +%Y%m%d-%H%M%S)
+          path: |
+            *.csv
+            data/
+            sentiment_data/
+          retention-days: 7
+
+      - name:  Final cleanup
+        if: always()
+        run: |
+          # Libérer encore plus d'espace
+          pip cache purge
+          rm -rf ~/.cache/pip
+          rm -rf /tmp/*
+          df -h
