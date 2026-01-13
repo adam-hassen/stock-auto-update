@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Analyse de sentiment simplifiee
-Stockage dans data/articles_sentiment/
-Avec colonne symbol et gestion cumulative
+Stockage cumulatif dans un seul fichier master
 """
 
 import requests
@@ -13,7 +12,7 @@ import warnings
 import os
 import time
 import random
-import json
+import hashlib
 warnings.filterwarnings('ignore')
 
 # ==================== CONFIGURATION ====================
@@ -33,99 +32,107 @@ class Config:
     # Dossier pour les articles
     ARTICLES_FOLDER = "data/articles_sentiment"
     os.makedirs(ARTICLES_FOLDER, exist_ok=True)
+    
+    # Fichier master unique
+    MASTER_FILE = f"{ARTICLES_FOLDER}/ARTICLES_MASTER.csv"
 
 # ==================== FONCTIONS UTILITAIRES ====================
-def load_existing_articles(ticker):
-    """Charge les articles existants pour un ticker donne"""
+def generate_article_id(title, source, date):
+    """Genere un ID unique pour un article"""
+    # Creer une chaine unique a partir du titre, source et date
+    unique_string = f"{title}_{source}_{date}"
+    # Generer un hash MD5
+    return hashlib.md5(unique_string.encode()).hexdigest()[:16]
+
+def load_master_articles():
+    """Charge le fichier master existant"""
     try:
-        # Chercher le dernier fichier pour ce ticker
-        files = [f for f in os.listdir(Config.ARTICLES_FOLDER) 
-                if f.startswith(f'articles_{ticker}_') and f.endswith('.csv')]
-        
-        if not files:
+        if os.path.exists(Config.MASTER_FILE):
+            df = pd.read_csv(Config.MASTER_FILE)
+            print(f"Chargement du fichier master avec {len(df)} articles existants")
+            return df
+        else:
+            print("Creation d'un nouveau fichier master")
             return pd.DataFrame()
-        
-        # Prendre le fichier le plus recent
-        latest_file = sorted(files)[-1]
-        file_path = os.path.join(Config.ARTICLES_FOLDER, latest_file)
-        
-        df = pd.read_csv(file_path)
-        # Marquer comme anciens articles
-        df['nouveau'] = False
-        return df
-        
     except Exception as e:
-        print(f"Erreur chargement articles existants pour {ticker}: {e}")
+        print(f"Erreur chargement fichier master: {e}")
         return pd.DataFrame()
 
-def save_combined_articles(all_dataframes):
-    """Sauvegarde combinee avec gestion cumulative"""
-    if not all_dataframes:
-        return
-    
-    # Nom du fichier combine
-    combined_filename = f"{Config.ARTICLES_FOLDER}/ALL_ARTICLES_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
-    
-    # Concatener tous les DataFrames
-    combined_df = pd.concat(all_dataframes, ignore_index=True)
-    
-    # Sauvegarde du fichier du jour
-    combined_df.to_csv(combined_filename, index=False)
-    print(f"Fichier combine du jour sauvegarde: {combined_filename}")
-    
-    # Gestion du fichier master cumulatif
-    master_filename = f"{Config.ARTICLES_FOLDER}/ALL_ARTICLES_MASTER.csv"
-    
+def save_to_master(new_articles_df):
+    """Ajoute les nouveaux articles au fichier master"""
     try:
-        # Charger le fichier master existant s'il existe
-        if os.path.exists(master_filename):
-            master_df = pd.read_csv(master_filename)
-            print(f"Chargement du fichier master avec {len(master_df)} articles existants")
-        else:
-            master_df = pd.DataFrame()
-            print("Creation d'un nouveau fichier master")
+        # Charger les articles existants
+        master_df = load_master_articles()
         
-        # Ajouter la colonne 'ajout_date' pour les nouveaux articles
-        today_date = datetime.now().strftime('%Y-%m-%d')
-        combined_df['ajout_date'] = today_date
-        
-        # Fusionner avec le master
-        if not master_df.empty:
-            # Eviter les doublons bases sur titre + source + date
-            mask = ~combined_df['titre'].isin(master_df['titre'])
-            new_articles = combined_df[mask].copy()
-            print(f"  {len(new_articles)} nouveaux articles a ajouter au master")
-            
-            if not new_articles.empty:
-                # Ajouter les nouveaux articles
-                updated_master = pd.concat([master_df, new_articles], ignore_index=True)
-                updated_master.to_csv(master_filename, index=False)
-                print(f"  Master mis a jour: {len(updated_master)} articles au total")
-            else:
-                print("  Aucun nouvel article a ajouter au master")
-                updated_master = master_df
-        else:
+        if master_df.empty:
             # Premier enregistrement
-            combined_df.to_csv(master_filename, index=False)
-            updated_master = combined_df
-            print(f"  Master cree avec {len(combined_df)} articles")
+            master_df = new_articles_df
+        else:
+            # Filtrer les articles qui n'existent pas deja
+            # On compare par ID unique
+            existing_ids = set(master_df['article_id'].values) if 'article_id' in master_df.columns else set()
+            new_articles_df = new_articles_df[~new_articles_df['article_id'].isin(existing_ids)]
+            
+            if not new_articles_df.empty:
+                # Ajouter les nouveaux articles
+                master_df = pd.concat([master_df, new_articles_df], ignore_index=True)
+                print(f"Ajout de {len(new_articles_df)} nouveaux articles au master")
+            else:
+                print("Aucun nouvel article a ajouter")
         
-        # Statistiques du master
-        print(f"STATISTIQUES MASTER:")
-        print(f"  Total articles: {len(updated_master)}")
-        print(f"  Entreprises uniques: {updated_master['symbol'].nunique()}")
+        # Sauvegarder le fichier master
+        master_df.to_csv(Config.MASTER_FILE, index=False)
+        print(f"Fichier master sauvegarde: {Config.MASTER_FILE}")
+        print(f"Total articles dans master: {len(master_df)}")
         
-        # Statistiques par date d'ajout
-        if 'ajout_date' in updated_master.columns:
-            date_stats = updated_master['ajout_date'].value_counts().sort_index()
-            print(f"  Articles par date d'ajout:")
-            for date, count in date_stats.items():
-                print(f"    {date}: {count} articles")
+        return master_df, len(new_articles_df) if 'new_articles_df' in locals() else 0
         
     except Exception as e:
-        print(f"Erreur gestion fichier master: {e}")
+        print(f"Erreur sauvegarde fichier master: {e}")
         import traceback
         traceback.print_exc()
+        return pd.DataFrame(), 0
+
+def create_summary_file(master_df, new_articles_count):
+    """Cree un fichier de resume pour aujourd'hui"""
+    try:
+        # Date d'aujourd'hui
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        # Filtrer les articles ajoutes aujourd'hui
+        if 'ajout_date' in master_df.columns:
+            today_articles = master_df[master_df['ajout_date'] == today]
+        else:
+            today_articles = master_df
+        
+        if not today_articles.empty:
+            # Creer un fichier de resume pour aujourd'hui
+            summary_filename = f"{Config.ARTICLES_FOLDER}/RESUME_{today}.csv"
+            today_articles.to_csv(summary_filename, index=False)
+            print(f"Resume du jour sauvegarde: {summary_filename}")
+            
+            # Creer un fichier JSON avec des statistiques
+            stats = {
+                'date': today,
+                'total_articles': len(master_df),
+                'new_articles_today': new_articles_count,
+                'companies_analyzed': today_articles['symbol'].nunique(),
+                'sentiment_distribution': {
+                    'positive': len(today_articles[today_articles['sentiment'] == 'positive']),
+                    'negative': len(today_articles[today_articles['sentiment'] == 'negative']),
+                    'neutral': len(today_articles[today_articles['sentiment'] == 'neutral'])
+                },
+                'source_distribution': today_articles['api_source'].value_counts().to_dict()
+            }
+            
+            stats_filename = f"{Config.ARTICLES_FOLDER}/STATS_{today}.json"
+            import json
+            with open(stats_filename, 'w') as f:
+                json.dump(stats, f, indent=2)
+            print(f"Statistiques sauvegardees: {stats_filename}")
+            
+    except Exception as e:
+        print(f"Erreur creation fichiers de resume: {e}")
 
 # ==================== SOURCES D'ARTICLES ====================
 class NewsAPIClient:
@@ -375,13 +382,9 @@ class SentimentAnalyzer:
         
         if not articles:
             print("Aucun article trouve")
-            return None
-        
-        # Charger les anciens articles pour eviter les doublons
-        old_articles = load_existing_articles(ticker)
+            return pd.DataFrame()
         
         analyzed_articles = []
-        new_articles_count = 0
         
         print(f"{len(articles)} articles trouves:")
         
@@ -395,12 +398,10 @@ class SentimentAnalyzer:
             else:
                 full_text = f"{title}. {description}"
             
-            # Verifier si l'article existe deja
-            is_new = True
-            if not old_articles.empty:
-                # Verifier par titre (simplifie)
-                if title in old_articles['titre'].values:
-                    is_new = False
+            # Generer un ID unique pour l'article
+            source_name = article.get('source', {}).get('name', 'Inconnue')
+            article_id = generate_article_id(title, source_name, 
+                                           article.get('publishedAt', ''))
             
             sentiment = self.analyze_text(full_text)
             weight = self.calculate_weight(article)
@@ -417,67 +418,45 @@ class SentimentAnalyzer:
                 except:
                     pub_date = date_str[:10] if len(date_str) >= 10 else "Inconnue"
             
-            source_name = article.get('source', {}).get('name', 'Inconnue')
             api_source = article.get('api_source', 'unknown')
             
             analyzed_article = {
-                'symbol': ticker,  # AJOUT DE LA COLONNE SYMBOL
+                'article_id': article_id,  # ID unique
+                'symbol': ticker,
                 'company': company_name,
-                'id': i,
-                'date': pub_date,
+                'date_publication': pub_date,
                 'source': str(source_name),
                 'api_source': api_source,
-                'titre': title[:100] + '...' if len(title) > 100 else title,
-                'contenu': full_text[:200] + '...' if len(full_text) > 200 else full_text,
-                'score': round(sentiment['score'], 3),
+                'titre': title[:150] + '...' if len(title) > 150 else title,
+                'contenu': full_text[:300] + '...' if len(full_text) > 300 else full_text,
+                'score_sentiment': round(sentiment['score'], 3),
                 'sentiment': sentiment['label'],
                 'confiance': round(sentiment['confidence'], 3),
                 'poids': round(weight, 2),
                 'score_pondere': round(weighted_score, 3),
                 'url': article.get('url', ''),
-                'nouveau': is_new,  # Marquer si c'est un nouvel article
-                'analyse_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                'date_analyse': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'ajout_date': datetime.now().strftime('%Y-%m-%d')  # Pour colorer dans Excel
             }
             
             analyzed_articles.append(analyzed_article)
             
-            if is_new:
-                new_articles_count += 1
-                print(f"Article {i} [NOUVEAU]: {title[:50]}...")
-            else:
-                print(f"Article {i} [DEJA VU]: {title[:50]}...")
-            
-            print(f"  Score: {sentiment['score']:.3f} | Sentiment: {sentiment['label']} | Source: {source_name} | API: {api_source}")
+            print(f"Article {i}: {title[:60]}...")
+            print(f"  ID: {article_id}")
+            print(f"  Score: {sentiment['score']:.3f} | Sentiment: {sentiment['label']} | Source: {source_name}")
         
         df = pd.DataFrame(analyzed_articles)
         
         if not df.empty:
-            # Sauvegarde dans le dossier data/articles_sentiment
-            filename = f"{Config.ARTICLES_FOLDER}/articles_{ticker}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
-            df.to_csv(filename, index=False, encoding='utf-8')
-            print(f"Donnees sauvegardees: {filename}")
-            
-            # Statistiques
             print(f"STATISTIQUES {ticker}:")
-            print(f"  Total articles: {len(df)}")
-            print(f"  Nouveaux articles: {new_articles_count}")
-            print(f"  Articles deja existants: {len(df) - new_articles_count}")
+            print(f"  Articles trouves: {len(df)}")
             
-            if 'api_source' in df.columns:
-                print(f"  Repartition par source:")
-                source_stats = df['api_source'].value_counts()
-                for source, count in source_stats.items():
-                    print(f"    {source}: {count} articles")
-            
-            positif = len(df[df['score'] > 0.1])
-            negatif = len(df[df['score'] < -0.1])
+            positif = len(df[df['sentiment'] == 'positive'])
+            negatif = len(df[df['sentiment'] == 'negative'])
             neutre = len(df) - positif - negatif
             
-            print(f"  Resume sentiment:")
-            print(f"    Articles positifs: {positif}")
-            print(f"    Articles negatifs: {negatif}")
-            print(f"    Articles neutres: {neutre}")
-            print(f"    Score moyen: {df['score'].mean():.3f}")
+            print(f"  Sentiment: {positif} positif, {negatif} negatif, {neutre} neutre")
+            print(f"  Score moyen: {df['score_sentiment'].mean():.3f}")
         
         return df
 
@@ -486,11 +465,12 @@ def main():
     print("DEBUT DE L'ANALYSE DE SENTIMENT")
     print("="*60)
     
+    today = datetime.now().strftime('%Y-%m-%d')
     print(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Periode: {Config.DAYS_BACK} derniers jours")
+    print(f"Periode analyse: {Config.DAYS_BACK} derniers jours")
     print(f"Sources: NewsAPI={Config.USE_NEWSAPI}, GNews={Config.USE_GNEWS}")
-    print(f"Articles par source: {Config.MAX_ARTICLES_PER_SOURCE}")
-    print(f"Dossier de sauvegarde: {Config.ARTICLES_FOLDER}")
+    print(f"Articles max/source: {Config.MAX_ARTICLES_PER_SOURCE}")
+    print(f"Fichier master: {Config.MASTER_FILE}")
     print("="*60)
     
     test_apis()
@@ -507,7 +487,12 @@ def main():
         {'ticker': 'META', 'name': 'Meta'},
     ]
     
-    all_dataframes = []
+    # Charger le master existant pour stats initiales
+    master_before = load_master_articles()
+    initial_count = len(master_before) if not master_before.empty else 0
+    print(f"\nArticles existants dans master: {initial_count}")
+    
+    all_new_articles = []
     
     for entreprise in entreprises:
         print(f"\n" + "="*60)
@@ -516,33 +501,59 @@ def main():
         
         df = analyzer.analyze_company(entreprise['ticker'], entreprise['name'])
         
-        if df is not None and not df.empty:
-            all_dataframes.append(df)
+        if not df.empty:
+            all_new_articles.append(df)
     
-    if all_dataframes:
-        # Sauvegarde combinee avec gestion cumulative
-        save_combined_articles(all_dataframes)
-        
-        # Resume final
+    if all_new_articles:
+        # Combiner tous les nouveaux articles
+        combined_new = pd.concat(all_new_articles, ignore_index=True)
         print(f"\n" + "="*60)
-        print("RESUME FINAL DE L'ANALYSE")
+        print(f"RESUME DE LA COLLECTE")
         print("="*60)
+        print(f"Total articles collectes aujourd'hui: {len(combined_new)}")
         
-        total_articles = sum(len(df) for df in all_dataframes)
-        new_articles = sum(df['nouveau'].sum() for df in all_dataframes if 'nouveau' in df.columns)
+        # Ajouter au fichier master
+        master_df, new_count = save_to_master(combined_new)
         
-        print(f"Total articles analyses aujourd'hui: {total_articles}")
-        print(f"Nouveaux articles: {new_articles}")
-        print(f"Articles deja existants: {total_articles - new_articles}")
-        print(f"Entreprises analysees: {len(entreprises)}")
-        
-        # Verifier si le fichier master existe
-        master_filename = f"{Config.ARTICLES_FOLDER}/ALL_ARTICLES_MASTER.csv"
-        if os.path.exists(master_filename):
-            master_df = pd.read_csv(master_filename)
-            print(f"\nFICHIER MASTER CUMULATIF:")
+        if not master_df.empty:
+            print(f"\nSTATISTIQUES MASTER:")
             print(f"  Total articles: {len(master_df)}")
+            print(f"  Nouveaux ajoutes aujourd'hui: {new_count}")
             print(f"  Entreprises uniques: {master_df['symbol'].nunique()}")
+            
+            # Statistiques de sentiment
+            print(f"\nDISTRIBUTION DES SENTIMENTS:")
+            sentiment_counts = master_df['sentiment'].value_counts()
+            for sentiment, count in sentiment_counts.items():
+                percentage = (count / len(master_df)) * 100
+                print(f"  {sentiment}: {count} articles ({percentage:.1f}%)")
+            
+            # Creer un fichier de resume pour aujourd'hui
+            create_summary_file(master_df, new_count)
+            
+            # Astuce pour colorer dans Excel/Sheets
+            print(f"\nASTUCE POUR COLORER DANS EXCEL/SHEETS:")
+            print(f"  1. Ouvrir le fichier: {Config.MASTER_FILE}")
+            print(f"  2. Trier par la colonne 'ajout_date' (decroissant)")
+            print(f"  3. Mettre en couleur les lignes ou 'ajout_date' = {today}")
+            print(f"  4. Les nouveaux articles seront en haut et colores!")
+            
+            # Generer un petit script pour Excel
+            excel_tips = f"""Pour colorer les nouveaux articles dans Excel:
+1. Ouvrir """"{Config.MASTER_FILE}
+2. Selectionner """toute la feuille (Ctrl+A)
+3. Aller dans "Accueil" > "Mise en forme conditionnelle"
+4. Choisir "Nouvelle regle" > "Utiliser une formule..."
+5. Entrer: =$Q2= {today}   (si Q est la colonne ajout_date)
+6. Choisir une couleur (ex: vert clair)
+7. OK
+
+Les nouveaux articles d'aujourd'hui seront colores!"""
+            
+            tips_file = f"{Config.ARTICLES_FOLDER}/EXCEL_TIPS.txt"
+            with open(tips_file, 'w') as f:
+                f.write(excel_tips)
+            print(f"\nAstuces Excel sauvegardees: {tips_file}")
     
     print("\n" + "="*60)
     print("ANALYSE TERMINEE")
