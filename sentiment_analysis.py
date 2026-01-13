@@ -540,11 +540,11 @@ def main():
             
             # Generer un petit script pour Excel
             excel_tips = f"""Pour colorer les nouveaux articles dans Excel:
-1. Ouvrir """"{Config.MASTER_FILE}
-2. Selectionner """toute la feuille (Ctrl+A)
+1. Ouvrir {Config.MASTER_FILE}
+2. Selectionner toute la feuille (Ctrl+A)
 3. Aller dans "Accueil" > "Mise en forme conditionnelle"
 4. Choisir "Nouvelle regle" > "Utiliser une formule..."
-5. Entrer: =$Q2= {today}   (si Q est la colonne ajout_date)
+5. Entrer: =$Q2="{today}"  (si Q est la colonne ajout_date)
 6. Choisir une couleur (ex: vert clair)
 7. OK
 
