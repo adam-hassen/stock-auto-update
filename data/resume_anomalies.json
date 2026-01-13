@@ -1,29 +1,67 @@
 {
-  "date_analyse": "2026-01-13 11:17:10",
-  "total_anomalies": 245,
+  "date_analyse": "2026-01-13 20:21:44",
+  "total_anomalies": 251,
   "par_type": {
-    "CASSURE_TENDANCE": 149,
-    "RSI_EXTREME": 45,
+    "CASSURE_TENDANCE": 151,
+    "RSI_EXTREME": 47,
     "VOLUME_ANORMAL": 23,
     "GAP_OUVERTURE": 20,
     "MOUVEMENT_EXTREME": 7,
-    "VOLATILITE_EXTREME": 1
+    "VOLATILITE_EXTREME": 3
   },
   "par_severite": {
-    "MOYENNE": 237,
-    "HAUTE": 8
+    "MOYENNE": 241,
+    "HAUTE": 10
   },
   "par_action": {
     "BTC-USD": 43,
-    "AMZN": 35,
-    "META": 33,
-    "GOOGL": 32,
+    "AMZN": 37,
+    "META": 34,
+    "GOOGL": 33,
     "TSLA": 28,
-    "MSFT": 26,
-    "NVDA": 25,
+    "MSFT": 27,
+    "NVDA": 26,
     "AAPL": 23
   },
   "anomalies_recentes": [
+    {
+      "symbol": "MSFT",
+      "date": "2026-01-08",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 20,
+      "description": "Cassure BAISSE de la MM20",
+      "prix": 478.1099853515625,
+      "MA_20": 481.4685028076172
+    },
+    {
+      "symbol": "GOOGL",
+      "date": "2026-01-08",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": 89.34243453148868,
+      "description": "RSI en SURACHAT: 89.3",
+      "niveau": "SURACHAT"
+    },
+    {
+      "symbol": "NVDA",
+      "date": "2026-01-08",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure BAISSE de la MM50",
+      "prix": 185.0399932861328,
+      "MA_50": 186.69211608886718
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2026-01-08",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": 82.93839110088322,
+      "description": "RSI en SURACHAT: 82.9",
+      "niveau": "SURACHAT"
+    },
     {
       "symbol": "MSFT",
       "date": "2026-01-07",
@@ -83,46 +121,6 @@
       "description": "Cassure HAUSSE de la MM50",
       "prix": 233.05999755859375,
       "MA_50": 231.82840057373048
-    },
-    {
-      "symbol": "META",
-      "date": "2026-01-05",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure HAUSSE de la MM20",
-      "prix": 658.7899780273438,
-      "MA_20": 658.4812927246094
-    },
-    {
-      "symbol": "META",
-      "date": "2026-01-05",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure HAUSSE de la MM50",
-      "prix": 658.7899780273438,
-      "MA_50": 650.3427294921875
-    },
-    {
-      "symbol": "TSLA",
-      "date": "2026-01-02",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure BAISSE de la MM50",
-      "prix": 438.07000732421875,
-      "MA_50": 445.012001953125
-    },
-    {
-      "symbol": "MSFT",
-      "date": "2026-01-02",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure BAISSE de la MM20",
-      "prix": 472.94000244140625,
-      "MA_20": 483.1735015869141
     }
   ]
 }
