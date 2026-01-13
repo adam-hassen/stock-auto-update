@@ -6,7 +6,7 @@ on:
   workflow_dispatch:  # Permet de lancer manuellement
 
 permissions:
-  contents: write  # IMPORTANT: Donne les droits d'écriture
+  contents: write
 
 jobs:
   collect-and-analyze:
@@ -33,6 +33,7 @@ jobs:
       run: |
         git config user.email "actions@github.com"
         git config user.name "GitHub Actions"
+        git remote set-url origin https://x-access-token:${{ secrets.PUSH_TOKEN }}@github.com/${{ github.repository }}.git
     
     - name: Run Financial Data Collection
       run: python data_pipeline.py
@@ -41,12 +42,15 @@ jobs:
       env:
         NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
         GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
+        PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
       run: python sentiment_analysis.py
     
     - name: Commit and Push Results
+      env:
+        PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
       run: |
         # Ajouter tous les nouveaux fichiers
-        git add data/ articles_*.csv ALL_ARTICLES_*.csv 2>/dev/null || true
+        git add data/ 2>/dev/null || true
         
         # Vérifier s'il y a des changements
         if git diff --cached --quiet; then
