@@ -1,0 +1,15 @@
+{
+  "date": "2026-01-13",
+  "total_articles": 38,
+  "new_articles_today": 38,
+  "companies_analyzed": 7,
+  "sentiment_distribution": {
+    "positive": 14,
+    "negative": 2,
+    "neutral": 22
+  },
+  "source_distribution": {
+    "newsapi": 25,
+    "gnews": 13
+  }
+}
