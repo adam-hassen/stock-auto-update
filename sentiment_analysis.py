@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Analyse de sentiment simplifiee
+Stockage dans data/articles_sentiment/
 """
 
 import requests
@@ -26,6 +27,10 @@ class Config:
     MAX_ARTICLES_PER_SOURCE = 8
     DAYS_BACK = 3
     FINBERT_MODEL = "ProsusAI/finbert"
+    
+    # Dossier pour les articles
+    ARTICLES_FOLDER = "data/articles_sentiment"
+    os.makedirs(ARTICLES_FOLDER, exist_ok=True)
 
 # ==================== SOURCES D'ARTICLES ====================
 class NewsAPIClient:
@@ -332,7 +337,8 @@ class SentimentAnalyzer:
         df = pd.DataFrame(analyzed_articles)
         
         if not df.empty:
-            filename = f"articles_{ticker}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+            # Sauvegarde dans le dossier data/articles_sentiment
+            filename = f"{Config.ARTICLES_FOLDER}/articles_{ticker}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
             df.to_csv(filename, index=False, encoding='utf-8')
             print(f"Donnees sauvegardees: {filename}")
             
@@ -363,6 +369,7 @@ def main():
     print(f"Periode: {Config.DAYS_BACK} derniers jours")
     print(f"Sources: NewsAPI={Config.USE_NEWSAPI}, GNews={Config.USE_GNEWS}")
     print(f"Articles par source: {Config.MAX_ARTICLES_PER_SOURCE}")
+    print(f"Dossier de sauvegarde: {Config.ARTICLES_FOLDER}")
     print("="*60)
     
     test_apis()
@@ -391,7 +398,7 @@ def main():
     
     if all_dataframes:
         combined_df = pd.concat(all_dataframes, ignore_index=True)
-        combined_filename = f"ALL_ARTICLES_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+        combined_filename = f"{Config.ARTICLES_FOLDER}/ALL_ARTICLES_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
         combined_df.to_csv(combined_filename, index=False)
         print(f"Fichier combine sauvegarde: {combined_filename}")
         
