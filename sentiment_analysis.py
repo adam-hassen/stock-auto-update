@@ -2,6 +2,7 @@
 """
 Analyse de sentiment simplifiee
 Stockage dans data/articles_sentiment/
+Avec colonne symbol et gestion cumulative
 """
 
 import requests
@@ -12,6 +13,7 @@ import warnings
 import os
 import time
 import random
+import json
 warnings.filterwarnings('ignore')
 
 # ==================== CONFIGURATION ====================
@@ -31,6 +33,99 @@ class Config:
     # Dossier pour les articles
     ARTICLES_FOLDER = "data/articles_sentiment"
     os.makedirs(ARTICLES_FOLDER, exist_ok=True)
+
+# ==================== FONCTIONS UTILITAIRES ====================
+def load_existing_articles(ticker):
+    """Charge les articles existants pour un ticker donne"""
+    try:
+        # Chercher le dernier fichier pour ce ticker
+        files = [f for f in os.listdir(Config.ARTICLES_FOLDER) 
+                if f.startswith(f'articles_{ticker}_') and f.endswith('.csv')]
+        
+        if not files:
+            return pd.DataFrame()
+        
+        # Prendre le fichier le plus recent
+        latest_file = sorted(files)[-1]
+        file_path = os.path.join(Config.ARTICLES_FOLDER, latest_file)
+        
+        df = pd.read_csv(file_path)
+        # Marquer comme anciens articles
+        df['nouveau'] = False
+        return df
+        
+    except Exception as e:
+        print(f"Erreur chargement articles existants pour {ticker}: {e}")
+        return pd.DataFrame()
+
+def save_combined_articles(all_dataframes):
+    """Sauvegarde combinee avec gestion cumulative"""
+    if not all_dataframes:
+        return
+    
+    # Nom du fichier combine
+    combined_filename = f"{Config.ARTICLES_FOLDER}/ALL_ARTICLES_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+    
+    # Concatener tous les DataFrames
+    combined_df = pd.concat(all_dataframes, ignore_index=True)
+    
+    # Sauvegarde du fichier du jour
+    combined_df.to_csv(combined_filename, index=False)
+    print(f"Fichier combine du jour sauvegarde: {combined_filename}")
+    
+    # Gestion du fichier master cumulatif
+    master_filename = f"{Config.ARTICLES_FOLDER}/ALL_ARTICLES_MASTER.csv"
+    
+    try:
+        # Charger le fichier master existant s'il existe
+        if os.path.exists(master_filename):
+            master_df = pd.read_csv(master_filename)
+            print(f"Chargement du fichier master avec {len(master_df)} articles existants")
+        else:
+            master_df = pd.DataFrame()
+            print("Creation d'un nouveau fichier master")
+        
+        # Ajouter la colonne 'ajout_date' pour les nouveaux articles
+        today_date = datetime.now().strftime('%Y-%m-%d')
+        combined_df['ajout_date'] = today_date
+        
+        # Fusionner avec le master
+        if not master_df.empty:
+            # Eviter les doublons bases sur titre + source + date
+            mask = ~combined_df['titre'].isin(master_df['titre'])
+            new_articles = combined_df[mask].copy()
+            print(f"  {len(new_articles)} nouveaux articles a ajouter au master")
+            
+            if not new_articles.empty:
+                # Ajouter les nouveaux articles
+                updated_master = pd.concat([master_df, new_articles], ignore_index=True)
+                updated_master.to_csv(master_filename, index=False)
+                print(f"  Master mis a jour: {len(updated_master)} articles au total")
+            else:
+                print("  Aucun nouvel article a ajouter au master")
+                updated_master = master_df
+        else:
+            # Premier enregistrement
+            combined_df.to_csv(master_filename, index=False)
+            updated_master = combined_df
+            print(f"  Master cree avec {len(combined_df)} articles")
+        
+        # Statistiques du master
+        print(f"STATISTIQUES MASTER:")
+        print(f"  Total articles: {len(updated_master)}")
+        print(f"  Entreprises uniques: {updated_master['symbol'].nunique()}")
+        
+        # Statistiques par date d'ajout
+        if 'ajout_date' in updated_master.columns:
+            date_stats = updated_master['ajout_date'].value_counts().sort_index()
+            print(f"  Articles par date d'ajout:")
+            for date, count in date_stats.items():
+                print(f"    {date}: {count} articles")
+        
+    except Exception as e:
+        print(f"Erreur gestion fichier master: {e}")
+        import traceback
+        traceback.print_exc()
 
 # ==================== SOURCES D'ARTICLES ====================
 class NewsAPIClient:
@@ -282,7 +377,11 @@ class SentimentAnalyzer:
             print("Aucun article trouve")
             return None
         
+        # Charger les anciens articles pour eviter les doublons
+        old_articles = load_existing_articles(ticker)
+        
         analyzed_articles = []
+        new_articles_count = 0
         
         print(f"{len(articles)} articles trouves:")
         
@@ -295,6 +394,13 @@ class SentimentAnalyzer:
                 full_text = f"{title}. {content}"
             else:
                 full_text = f"{title}. {description}"
+            
+            # Verifier si l'article existe deja
+            is_new = True
+            if not old_articles.empty:
+                # Verifier par titre (simplifie)
+                if title in old_articles['titre'].values:
+                    is_new = False
             
             sentiment = self.analyze_text(full_text)
             weight = self.calculate_weight(article)
@@ -315,6 +421,8 @@ class SentimentAnalyzer:
             api_source = article.get('api_source', 'unknown')
             
             analyzed_article = {
+                'symbol': ticker,  # AJOUT DE LA COLONNE SYMBOL
+                'company': company_name,
                 'id': i,
                 'date': pub_date,
                 'source': str(source_name),
@@ -326,12 +434,19 @@ class SentimentAnalyzer:
                 'confiance': round(sentiment['confidence'], 3),
                 'poids': round(weight, 2),
                 'score_pondere': round(weighted_score, 3),
-                'url': article.get('url', '')
+                'url': article.get('url', ''),
+                'nouveau': is_new,  # Marquer si c'est un nouvel article
+                'analyse_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             
             analyzed_articles.append(analyzed_article)
             
-            print(f"Article {i}: {title[:50]}...")
+            if is_new:
+                new_articles_count += 1
+                print(f"Article {i} [NOUVEAU]: {title[:50]}...")
+            else:
+                print(f"Article {i} [DEJA VU]: {title[:50]}...")
+            
             print(f"  Score: {sentiment['score']:.3f} | Sentiment: {sentiment['label']} | Source: {source_name} | API: {api_source}")
         
         df = pd.DataFrame(analyzed_articles)
@@ -342,21 +457,27 @@ class SentimentAnalyzer:
             df.to_csv(filename, index=False, encoding='utf-8')
             print(f"Donnees sauvegardees: {filename}")
             
+            # Statistiques
+            print(f"STATISTIQUES {ticker}:")
+            print(f"  Total articles: {len(df)}")
+            print(f"  Nouveaux articles: {new_articles_count}")
+            print(f"  Articles deja existants: {len(df) - new_articles_count}")
+            
             if 'api_source' in df.columns:
-                print(f"REPARTITION PAR SOURCE:")
+                print(f"  Repartition par source:")
                 source_stats = df['api_source'].value_counts()
                 for source, count in source_stats.items():
-                    print(f"  {source}: {count} articles")
+                    print(f"    {source}: {count} articles")
             
             positif = len(df[df['score'] > 0.1])
             negatif = len(df[df['score'] < -0.1])
             neutre = len(df) - positif - negatif
             
-            print(f"RESUME SENTIMENT:")
-            print(f"  Articles positifs: {positif}")
-            print(f"  Articles negatifs: {negatif}")
-            print(f"  Articles neutres: {neutre}")
-            print(f"  Score moyen: {df['score'].mean():.3f}")
+            print(f"  Resume sentiment:")
+            print(f"    Articles positifs: {positif}")
+            print(f"    Articles negatifs: {negatif}")
+            print(f"    Articles neutres: {neutre}")
+            print(f"    Score moyen: {df['score'].mean():.3f}")
         
         return df
 
@@ -389,7 +510,9 @@ def main():
     all_dataframes = []
     
     for entreprise in entreprises:
+        print(f"\n" + "="*60)
         print(f"ANALYSE DE {entreprise['name']} ({entreprise['ticker']})")
+        print("="*60)
         
         df = analyzer.analyze_company(entreprise['ticker'], entreprise['name'])
         
@@ -397,21 +520,31 @@ def main():
             all_dataframes.append(df)
     
     if all_dataframes:
-        combined_df = pd.concat(all_dataframes, ignore_index=True)
-        combined_filename = f"{Config.ARTICLES_FOLDER}/ALL_ARTICLES_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
-        combined_df.to_csv(combined_filename, index=False)
-        print(f"Fichier combine sauvegarde: {combined_filename}")
+        # Sauvegarde combinee avec gestion cumulative
+        save_combined_articles(all_dataframes)
         
-        print(f"Total articles analyses: {len(combined_df)}")
+        # Resume final
+        print(f"\n" + "="*60)
+        print("RESUME FINAL DE L'ANALYSE")
+        print("="*60)
+        
+        total_articles = sum(len(df) for df in all_dataframes)
+        new_articles = sum(df['nouveau'].sum() for df in all_dataframes if 'nouveau' in df.columns)
+        
+        print(f"Total articles analyses aujourd'hui: {total_articles}")
+        print(f"Nouveaux articles: {new_articles}")
+        print(f"Articles deja existants: {total_articles - new_articles}")
         print(f"Entreprises analysees: {len(entreprises)}")
         
-        if 'api_source' in combined_df.columns:
-            print(f"REPARTITION PAR SOURCE API:")
-            source_stats = combined_df['api_source'].value_counts()
-            for source, count in source_stats.items():
-                percentage = (count / len(combined_df)) * 100
-                print(f"  {source}: {count} articles ({percentage:.1f}%)")
+        # Verifier si le fichier master existe
+        master_filename = f"{Config.ARTICLES_FOLDER}/ALL_ARTICLES_MASTER.csv"
+        if os.path.exists(master_filename):
+            master_df = pd.read_csv(master_filename)
+            print(f"\nFICHIER MASTER CUMULATIF:")
+            print(f"  Total articles: {len(master_df)}")
+            print(f"  Entreprises uniques: {master_df['symbol'].nunique()}")
     
+    print("\n" + "="*60)
     print("ANALYSE TERMINEE")
     print("="*60)
 
