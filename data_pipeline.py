@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-PIPELINE COMPLÈTE - Version avec les bonnes branches
-Repo 1 (exécution): adam-hassen/stock-auto-update (main)
-Repo 2 (données): Gasthorn/Projet4A_PredictionsBoursieres (Collecte-Des-Données)
+PIPELINE COMPLETE - Version simplifiee
+Stockage des donnees uniquement dans le repo principal
 """
 
 import os
@@ -10,38 +9,13 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import yfinance as yf
-import subprocess
-import json
 import warnings
-import shutil
-import tempfile
+import json
 warnings.filterwarnings('ignore')
 
 # ====================== CONFIGURATION ======================
-PUSH_TOKEN = os.getenv('PUSH_TOKEN')
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', PUSH_TOKEN)
 DATA_FOLDER = "data"
 os.makedirs(DATA_FOLDER, exist_ok=True)
-
-# ====================== URLs CORRIGÉES ======================
-# REPO 1 : Où s'exécute le code (adam-hassen/stock-auto-update) - BRANCHE MAIN
-REPO1_OWNER = "adam-hassen"
-REPO1_NAME = "stock-auto-update"
-REPO1_BRANCH = "main"  # Branche main pour l'exécution
-
-# REPO 2 : Où tu veux stocker les données (Gasthorn/Projet4A_PredictionsBoursieres) - BRANCHE Collecte-Des-Données
-REPO2_OWNER = "Gasthorn"
-REPO2_NAME = "Projet4A_PredictionsBoursieres"
-REPO2_BRANCH = "Collecte-Des-Données"  # Ta branche spécifique
-
-# URLs COMPLÈTES
-REPO1_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{REPO1_OWNER}/{REPO1_NAME}.git"
-REPO2_PUBLIC_URL = f"https://github.com/{REPO2_OWNER}/{REPO2_NAME}.git"
-REPO2_URL = f"https://x-access-token:{PUSH_TOKEN}@github.com/{REPO2_OWNER}/{REPO2_NAME}.git"
-
-print(f" Configuration repositories:")
-print(f"   • Repo exécution: {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
-print(f"   • Repo données: {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
 
 # Symboles à tracker
 SYMBOLS = ["AAPL", "TSLA", "MSFT", "BTC-USD", "GOOGL", "NVDA", "AMZN", "META"]
@@ -62,17 +36,6 @@ def convert_numpy_types(obj):
     else:
         return obj
 
-def check_token():
-    """Vérifie si un token est disponible"""
-    token = PUSH_TOKEN or GITHUB_TOKEN
-    if token:
-        print(f"✅ Token détecté (longueur: {len(token)})")
-        return True
-    else:
-        print("⚠️  Aucun token détecté")
-        return False
-
-# ====================== DÉTECTION D'ANOMALIES ======================
 def calculate_zscore(data):
     """Calcule le Z-score sans scipy"""
     if len(data) == 0:
@@ -84,7 +47,7 @@ def calculate_zscore(data):
     return np.abs((data - mean) / std)
 
 def detect_anomalies_avancee(df, symbol):
-    """Détection avancée des anomalies dans les données financières"""
+    """Detection avancee des anomalies dans les donnees financieres"""
     
     anomalies = []
     
@@ -106,7 +69,7 @@ def detect_anomalies_avancee(df, symbol):
                     'type': 'MOUVEMENT_EXTREME',
                     'severite': 'HAUTE',
                     'valeur': rendement,
-                    'description': f"Mouvement de prix extrême: {rendement:.2f}%",
+                    'description': f"Mouvement de prix extreme: {rendement:.2f}%",
                     'prix_ce_jour': prix
                 })
     
@@ -155,7 +118,7 @@ def detect_anomalies_avancee(df, symbol):
                     'cloture_precedente': float(df.iloc[idx-1]['Close']) if idx > 0 else None
                 })
     
-    # 4. ANOMALIES DE VOLATILITÉ
+    # 4. ANOMALIES DE VOLATILITE
     if len(returns) > 10:
         volatilite_rolling = returns.rolling(window=10).std().dropna()
         if len(volatilite_rolling) > 0:
@@ -173,7 +136,7 @@ def detect_anomalies_avancee(df, symbol):
                         'type': 'VOLATILITE_EXTREME',
                         'severite': 'HAUTE',
                         'valeur': volatilite,
-                        'description': f"Volatilité extrême: {volatilite:.2f}%",
+                        'description': f"Volatilite extreme: {volatilite:.2f}%",
                         'periode': '10 jours'
                     })
     
@@ -202,7 +165,7 @@ def detect_anomalies_avancee(df, symbol):
                         f'MA_{window}': float(df.iloc[idx][ma_col])
                     })
     
-    # 6. RSI EXTRÊME
+    # 6. RSI EXTREME
     if 'RSI_14' in df.columns:
         rsi_data = df['RSI_14'].dropna()
         if len(rsi_data) > 0:
@@ -230,9 +193,9 @@ def detect_anomalies_avancee(df, symbol):
     return anomalies
 
 def sauvegarder_anomalies(anomalies_par_action):
-    """Sauvegarde toutes les anomalies détectées"""
+    """Sauvegarde toutes les anomalies detectees"""
     if not any(anomalies_par_action.values()):
-        print("✅ Aucune anomalie détectée")
+        print("Aucune anomalie detectee")
         return
     
     toutes_anomalies = []
@@ -256,13 +219,13 @@ def sauvegarder_anomalies(anomalies_par_action):
     with open(f"{DATA_FOLDER}/resume_anomalies.json", "w") as f:
         json.dump(resume_anomalies, f, indent=2, ensure_ascii=False)
     
-    print(f"✅ {len(toutes_anomalies)} anomalies détectées et sauvegardées")
+    print(f"{len(toutes_anomalies)} anomalies detectees et sauvegardees")
     if resume_anomalies['par_type']:
-        print(f"    Répartition: {resume_anomalies['par_type']}")
+        print(f"    Repartition: {resume_anomalies['par_type']}")
 
-# ====================== NETTOYAGE DES DONNÉES ======================
+# ====================== NETTOYAGE DES DONNEES ======================
 def clean_data(df, symbol):
-    """Nettoyage des données financières"""
+    """Nettoyage des donnees financieres"""
     df = df.drop_duplicates(subset=['date']).sort_values('date').reset_index(drop=True)
     
     numeric_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
@@ -306,35 +269,35 @@ def create_essential_features(df, symbol):
     
     df = df.dropna()
     
-    print(f"✅ {symbol}: {len(df)} lignes avec features")
+    print(f"{symbol}: {len(df)} lignes avec features")
     return df
 
 # ====================== SAUVEGARDE DES VERSIONS ======================
 def save_all_versions(df_clean, df_features, symbol, all_cleaned_data, all_features_data):
-    """Sauvegarde les 3 versions des données"""
+    """Sauvegarde les 3 versions des donnees"""
     
     df_features.to_csv(f"{DATA_FOLDER}/{symbol}.csv", index=False)
     all_cleaned_data.append(df_clean)
     all_features_data.append(df_features)
     
-    print(f" {symbol}.csv sauvegardé")
+    print(f"{symbol}.csv sauvegarde")
 
 def save_combined_files(all_cleaned_data, all_features_data):
-    """Sauvegarde les fichiers combinés"""
+    """Sauvegarde les fichiers combines"""
     
     combined_cleaned = pd.concat(all_cleaned_data, ignore_index=True)
     combined_cleaned.to_csv(f"{DATA_FOLDER}/ALL_CLEANED.csv", index=False)
-    print(" ALL_CLEANED.csv sauvegardé")
+    print("ALL_CLEANED.csv sauvegarde")
     
     combined_features = pd.concat(all_features_data, ignore_index=True)
     combined_features.to_csv(f"{DATA_FOLDER}/ALL_FEATURES.csv", index=False)
-    print(" ALL_FEATURES.csv sauvegardé")
+    print("ALL_FEATURES.csv sauvegarde")
     
     return combined_cleaned, combined_features
 
 def generate_simple_report(combined_cleaned):
-    """Rapport simple des données disponibles"""
-    print(" Génération du rapport...")
+    """Rapport simple des donnees disponibles"""
+    print("Generation du rapport...")
     
     report_data = []
     
@@ -354,367 +317,118 @@ def generate_simple_report(combined_cleaned):
     if report_data:
         report_df = pd.DataFrame(report_data)
         report_df.to_csv(f"{DATA_FOLDER}/data_report.csv", index=False)
-        print("✅ Rapport généré")
+        print("Rapport genere")
     
     return report_df
 
 # ====================== COLLECTE YFINANCE ======================
 def collect_yfinance():
-    """Collecte principale des données yFinance - VERSION AVEC TOUTES LES DONNÉES"""
+    """Collecte principale des donnees yFinance"""
     all_cleaned_data = []
     all_features_data = []
     anomalies_par_action = {}
     
-    print("Collecte des données yFinance...")
+    print("Collecte des donnees yFinance...")
     print(f"Date du jour: {datetime.now().strftime('%Y-%m-%d')}")
     
     for symbol in SYMBOLS:
         try:
-            print(f"\n Récupération {symbol}...")
+            print(f"Recuperation {symbol}...")
             ticker = yf.Ticker(symbol)
             
-            # ANCIENNE VERSION - TOUTES LES DONNÉES DEPUIS 2023
             start_date = "2023-01-01"
             end_date = datetime.now().strftime('%Y-%m-%d')
             
-            # Essayer d'abord avec period="max" pour avoir le maximum
             try:
                 df = ticker.history(period="max")
-                print(f"    Récupération MAXIMUM de données")
+                print(f"    Recuperation MAXIMUM de donnees")
             except:
-                # Fallback sur les dates
                 df = ticker.history(start=start_date, end=end_date)
-                print(f"    Récupération depuis {start_date}")
+                print(f"    Recuperation depuis {start_date}")
             
             if df.empty:
-                print(f"⚠️  Aucune donnée pour {symbol}")
+                print(f"Aucune donnee pour {symbol}")
                 continue
             
             dates_collectees = df.index.strftime('%Y-%m-%d').tolist()
-            print(f"    Période: {min(dates_collectees)} → {max(dates_collectees)} ({len(df)} jours)")
+            print(f"    Periode: {min(dates_collectees)} -> {max(dates_collectees)} ({len(df)} jours)")
             
             df = df.reset_index()
             df['symbol'] = symbol
             df['date'] = df['Date'].dt.strftime('%Y-%m-%d')
             df = df[['date', 'Open', 'High', 'Low', 'Close', 'Volume', 'symbol']]
             
-            # FILTRE IMPORTANT : supprimer les dates futures
             today = datetime.now().strftime('%Y-%m-%d')
             df = df[df['date'] <= today]
             
             if df.empty:
-                print(f"  Aucune donnée valide après filtrage pour {symbol}")
+                print(f"  Aucune donnee valide apres filtrage pour {symbol}")
                 continue
             
-            # Nettoyage
             df_clean = clean_data(df, symbol)
             
-            # Features - MAIS on garde seulement les 180 derniers jours pour les features
-            # pour éviter d'avoir trop de NaN au début
-            print(f"     Création des features...")
+            print(f"     Creation des features...")
             
-            # Pour les features, on prend les 180 derniers jours
-            df_recent = df_clean.copy()
-            # On calcule la date limite pour garder assez de données pour les MAs
             cutoff_date = (datetime.now() - timedelta(days=200)).strftime('%Y-%m-%d')
+            df_recent = df_clean.copy()
             df_recent = df_recent[df_recent['date'] >= cutoff_date]
             
             df_features = create_essential_features(df_recent, symbol)
             
-            print(f"   🔍 Analyse des anomalies...")
+            print(f"   Analyse des anomalies...")
             anomalies = detect_anomalies_avancee(df_features, symbol)
             anomalies_par_action[symbol] = anomalies
             
             if anomalies:
-                print(f"   ⚠️  {len(anomalies)} anomalies détectées")
+                print(f"   {len(anomalies)} anomalies detectees")
             else:
-                print(f"   ✅ Aucune anomalie")
+                print(f"   Aucune anomalie")
             
-            # Sauvegarde des fichiers
             df_features.to_csv(f"{DATA_FOLDER}/{symbol}.csv", index=False)
             all_cleaned_data.append(df_clean)
             all_features_data.append(df_features)
             
-            print(f"💾 {symbol}.csv sauvegardé ({len(df_clean)} lignes brutes, {len(df_features)} lignes avec features)")
+            print(f"{symbol}.csv sauvegarde ({len(df_clean)} lignes brutes, {len(df_features)} lignes avec features)")
             
         except Exception as e:
-            print(f"❌ Erreur avec {symbol}: {str(e)[:100]}...")
+            print(f"Erreur avec {symbol}: {str(e)[:100]}...")
     
     if all_cleaned_data:
         combined_cleaned, combined_features = save_combined_files(all_cleaned_data, all_features_data)
         data_report = generate_simple_report(combined_cleaned)
         sauvegarder_anomalies(anomalies_par_action)
         
-        print(f"\n✅ Collecte terminée avec succès!")
-        print(f"   • {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)} actions récupérées")
-        print(f"   • ALL_CLEANED.csv: {len(combined_cleaned)} lignes (toutes données depuis 2023)")
-        print(f"   • ALL_FEATURES.csv: {len(combined_features)} lignes (180 derniers jours)")
+        print(f"Collecte terminee avec succes!")
+        print(f"   {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)} actions recuperees")
+        print(f"   ALL_CLEANED.csv: {len(combined_cleaned)} lignes")
+        print(f"   ALL_FEATURES.csv: {len(combined_features)} lignes")
         
         return combined_cleaned, combined_features, data_report
     else:
-        raise Exception("❌ Aucune donnée collectée")
-
-# ====================== GIT ACTIONS POUR REPO D'EXÉCUTION ======================
-def git_actions_repo1():
-    """Gère les actions Git pour le repo d'exécution (adam-hassen/stock-auto-update) - MAIN"""
-    print("\n" + "="*50)
-    print(f" Actions Git - REPO D'EXÉCUTION...")
-    print(f"    {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
-    
-    if not PUSH_TOKEN:
-        print("❌ PUSH_TOKEN non configuré")
-        return False
-    
-    # Configurer Git
-    subprocess.run(["git", "config", "user.email", "github-actions@github.com"], 
-                   capture_output=True, text=True)
-    subprocess.run(["git", "config", "user.name", "GitHub Actions Bot"], 
-                   capture_output=True, text=True)
-    
-    # Vérifier sur quelle branche on est
-    branch_check = subprocess.run(["git", "branch", "--show-current"], 
-                                capture_output=True, text=True)
-    current_branch = branch_check.stdout.strip()
-    
-    if current_branch != REPO1_BRANCH:
-        print(f" Switching de '{current_branch}' à '{REPO1_BRANCH}'...")
-        subprocess.run(["git", "checkout", REPO1_BRANCH], 
-                       capture_output=True, text=True)
-    
-    # Ajouter les fichiers data
-    subprocess.run(["git", "add", DATA_FOLDER], 
-                   capture_output=True, text=True)
-    
-    # Vérifier s'il y a des changements
-    status_result = subprocess.run(["git", "status", "--porcelain"], 
-                                 capture_output=True, text=True)
-    
-    if not status_result.stdout.strip():
-        print("✅ Aucun changement dans le repo d'exécution")
-        return False
-    
-    # Commit
-    commit_msg = f" Update données financières {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-    commit_result = subprocess.run(["git", "commit", "-m", commit_msg], 
-                                 capture_output=True, text=True)
-    
-    if commit_result.returncode != 0:
-        print(f"⚠️  Erreur commit: {commit_result.stderr[:200]}")
-        return False
-    
-    # Push vers la branche main
-    print(f"  Pushing vers {REPO1_BRANCH}...")
-    push_result = subprocess.run(["git", "push", REPO1_URL, f"HEAD:{REPO1_BRANCH}", "--force"], 
-                               capture_output=True, text=True)
-    
-    if push_result.returncode == 0:
-        print(f"✅ Push réussi sur la branche {REPO1_BRANCH}!")
-        print(f"    https://github.com/{REPO1_OWNER}/{REPO1_NAME}/tree/{REPO1_BRANCH}")
-        return True
-    else:
-        print(f"❌ Erreur push: {push_result.stderr[:200]}")
-        return False
-
-# ====================== PUSH VERS REPO DE DONNÉES (sur branche Collecte-Des-Données) ======================
-def push_to_data_repo(combined_cleaned, combined_features, data_report):
-    """Push les fichiers CSV vers le repo de données sur la branche Collecte-Des-Données"""
-    print("\n" + "="*50)
-    print(" Préparation du REPO DE DONNÉES...")
-    print(f"    {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
-    
-    if not PUSH_TOKEN:
-        print("❌ PUSH_TOKEN non configuré")
-        return False
-    
-    print(f"✅ Token disponible")
-    
-    temp_dir = tempfile.mkdtemp()
-    original_dir = os.getcwd()
-    
-    try:
-        print(f" Dossier temporaire: {temp_dir}")
-        os.chdir(temp_dir)
-        
-        # Initialiser un nouveau repo git
-        subprocess.run(["git", "init"], check=True, capture_output=True)
-        subprocess.run(["git", "config", "user.email", "data-pipeline@github.com"], check=False)
-        subprocess.run(["git", "config", "user.name", "Financial Data Bot"], check=False)
-        
-        # Créer la structure
-        os.makedirs("data", exist_ok=True)
-        
-        # Sauvegarder les fichiers principaux
-        print(" Sauvegarde des fichiers...")
-        
-        if combined_cleaned is not None and not combined_cleaned.empty:
-            combined_cleaned.to_csv("data/ALL_CLEANED.csv", index=False)
-            print(f"   • ALL_CLEANED.csv: {len(combined_cleaned)} lignes")
-        
-        if combined_features is not None and not combined_features.empty:
-            combined_features.to_csv("data/ALL_FEATURES.csv", index=False)
-            print(f"   • ALL_FEATURES.csv: {len(combined_features)} lignes")
-        
-        if data_report is not None and not data_report.empty:
-            data_report.to_csv("data/data_report.csv", index=False)
-            print(f"   • data_report.csv: {len(data_report)} actions")
-        
-        # Ajouter un README spécifique
-        readme_content = f"""#  Données Financières - Projet 4A
-
-*Dernière mise à jour: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
-
-##  Fichiers disponibles
-
-Cette branche (`{REPO2_BRANCH}`) contient les données financières collectées automatiquement.
-
-| Fichier | Description | Taille |
-|---------|-------------|--------|
-| `data/ALL_CLEANED.csv` | Données brutes nettoyées | {len(combined_cleaned) if combined_cleaned is not None else 0} lignes |
-| `data/ALL_FEATURES.csv` | Données avec indicateurs techniques | {len(combined_features) if combined_features is not None else 0} lignes |
-| `data/data_report.csv` | Rapport des données disponibles | {len(data_report) if data_report is not None else 0} actions |
-
-##  Symboles suivis
-
-{', '.join(SYMBOLS)}
-
-##  Source des données
-
-Données collectées depuis Yahoo Finance via l'API yFinance.
-Mises à jour automatiques quotidiennes à 20h (heure française).
-
-##  Indicateurs inclus
-
-Pour chaque symbole:
-- Prix (Open, High, Low, Close, Volume)
-- Retours journaliers
-- Volatilité (10 jours)
-- Moyennes mobiles (5, 20, 50 jours)
-- RSI (14 jours)
-- Ratio de volume
----
-
-*Généré automatiquement par GitHub Actions depuis [stock-auto-update](https://github.com/{REPO1_OWNER}/{REPO1_NAME})*
-"""
-        
-        with open("README.md", "w", encoding="utf-8") as f:
-            f.write(readme_content)
-        
-        # Ajouter un .gitignore
-        with open(".gitignore", "w") as f:
-            f.write("*.pyc\n__pycache__/\n*.log\n.DS_Store\n")
-        
-        # Ajouter tous les fichiers
-        subprocess.run(["git", "add", "."], check=True, capture_output=True)
-        
-        # Commit
-        commit_msg = f" Mise à jour données {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-        commit_result = subprocess.run(["git", "commit", "-m", commit_msg], 
-                                     capture_output=True, text=True)
-        
-        if commit_result.returncode != 0 and "nothing to commit" not in commit_result.stdout:
-            print(f"❌ Erreur commit: {commit_result.stderr}")
-            return False
-        
-        # Créer la branche Collecte-Des-Données (pas main!)
-        subprocess.run(["git", "branch", "-M", REPO2_BRANCH], check=True, capture_output=True)
-        
-        # Ajouter le remote
-        print(f" Connexion au repo {REPO2_OWNER}/{REPO2_NAME}...")
-        
-        remote_add = subprocess.run(["git", "remote", "add", "origin", REPO2_URL], 
-                                  capture_output=True, text=True)
-        
-        if remote_add.returncode != 0:
-            print(f"  Remote déjà configuré")
-        
-        # Force push vers la branche Collecte-Des-Données
-        print(f"  Pushing vers la branche {REPO2_BRANCH}...")
-        push_result = subprocess.run(["git", "push", "--force", "origin", REPO2_BRANCH], 
-                                   capture_output=True, text=True)
-        
-        if push_result.returncode == 0:
-            print(f"✅ Push réussi sur la branche {REPO2_BRANCH}!")
-            print(f" {REPO2_PUBLIC_URL}/tree/{REPO2_BRANCH}")
-            return True
-        else:
-            print(f"❌ Erreur push: {push_result.stderr[:200]}")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Erreur: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-    finally:
-        os.chdir(original_dir)
-        try:
-            shutil.rmtree(temp_dir)
-        except:
-            pass
+        raise Exception("Aucune donnee collectee")
 
 # ====================== MAIN ======================
 if __name__ == "__main__":
-    print(" DÉBUT PIPELINE COMPLÈTE")
+    print("DEBUT PIPELINE COMPLETE")
     print("="*60)
-    print(f" Token utilisé: {'✅ PUSH_TOKEN' if PUSH_TOKEN else '❌ AUCUN'}")
-    print(f" Repo exécution: {REPO1_OWNER}/{REPO1_NAME} (branche: {REPO1_BRANCH})")
-    print(f" Repo données: {REPO2_OWNER}/{REPO2_NAME} (branche: {REPO2_BRANCH})")
+    print(f"Symboles analyses: {', '.join(SYMBOLS)}")
+    print(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("="*60)
     
     try:
-        # 1. Vérifier le token
-        has_token = check_token()
-        
-        # 2. Collecter et traiter les données
         combined_cleaned, combined_features, data_report = collect_yfinance()
         
-        # 3. Push vers le repo d'exécution (main)
-        repo1_success = False
-        if has_token:
-            repo1_success = git_actions_repo1()
-        else:
-            print("\n" + "="*50)
-            print("⚠️  Pas de token, skip du repo d'exécution")
-        
-        # 4. Push vers le repo de données (Collecte-Des-Données)
-        repo2_success = False
-        if has_token:
-            repo2_success = push_to_data_repo(combined_cleaned, combined_features, data_report)
-        else:
-            print("\n" + "="*50)
-            print("⚠️  Pas de token, skip du repo de données")
-        
-        # 5. Résumé final
-        print("\n" + "="*60)
-        print("🎉 RÉSUMÉ DE L'EXÉCUTION:")
-        print("-"*60)
-        
-        if repo1_success:
-            print(f"✅ REPO EXÉCUTION: Code + données mis à jour")
-            print(f"    https://github.com/{REPO1_OWNER}/{REPO1_NAME}/tree/{REPO1_BRANCH}")
-        elif has_token:
-            print("  REPO EXÉCUTION: Aucun changement détecté")
-        else:
-            print("⚠️  REPO EXÉCUTION: Skippé (pas de token)")
-        
-        if repo2_success:
-            print(f"✅ REPO DONNÉES: Données publiées sur '{REPO2_BRANCH}'")
-            print(f"    {REPO2_PUBLIC_URL}/tree/{REPO2_BRANCH}")
-        elif has_token:
-            print("❌ REPO DONNÉES: Échec de la publication")
-        else:
-            print("⚠️  REPO DONNÉES: Skippé (pas de token)")
-        
-        print("\n STATISTIQUES FINALES:")
-        print(f"   • Actions traitées: {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)}")
-        print(f"   • Données totales: {len(combined_cleaned) if combined_cleaned is not None else 0} lignes")
-        print(f"   • Anomalies détectées: Voir {DATA_FOLDER}/ANOMALIES_DETECTEES.csv")
-        print(f"   • Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("="*60)
-        print("🏁 PIPELINE TERMINÉE")
+        print("STATISTIQUES FINALES:")
+        print(f"   Actions traitees: {len([s for s in SYMBOLS if os.path.exists(f'{DATA_FOLDER}/{s}.csv')])}/{len(SYMBOLS)}")
+        print(f"   Donnees totales: {len(combined_cleaned) if combined_cleaned is not None else 0} lignes")
+        print(f"   Anomalies detectees: {DATA_FOLDER}/ANOMALIES_DETECTEES.csv")
+        print(f"   Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("="*60)
+        print("PIPELINE TERMINEE")
         
     except Exception as e:
-        print(f"\n ERREUR CRITIQUE: {e}")
+        print(f"ERREUR CRITIQUE: {e}")
         import traceback
         traceback.print_exc()
         exit(1)
