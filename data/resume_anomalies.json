@@ -1,11 +1,11 @@
 {
-  "date_analyse": "2026-01-13 20:21:44",
+  "date_analyse": "2026-01-14 20:19:22",
   "total_anomalies": 251,
   "par_type": {
     "CASSURE_TENDANCE": 151,
-    "RSI_EXTREME": 47,
+    "RSI_EXTREME": 48,
     "VOLUME_ANORMAL": 23,
-    "GAP_OUVERTURE": 20,
+    "GAP_OUVERTURE": 19,
     "MOUVEMENT_EXTREME": 7,
     "VOLATILITE_EXTREME": 3
   },
@@ -15,15 +15,43 @@
   },
   "par_action": {
     "BTC-USD": 43,
-    "AMZN": 37,
-    "META": 34,
+    "AMZN": 38,
     "GOOGL": 33,
-    "TSLA": 28,
-    "MSFT": 27,
+    "META": 33,
+    "TSLA": 29,
+    "MSFT": 26,
     "NVDA": 26,
     "AAPL": 23
   },
   "anomalies_recentes": [
+    {
+      "symbol": "TSLA",
+      "date": "2026-01-09",
+      "type": "CASSURE_TENDANCE",
+      "severite": "MOYENNE",
+      "valeur": 50,
+      "description": "Cassure HAUSSE de la MM50",
+      "prix": 445.010009765625,
+      "MA_50": 444.2562017822266
+    },
+    {
+      "symbol": "GOOGL",
+      "date": "2026-01-09",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": 88.52165988749303,
+      "description": "RSI en SURACHAT: 88.5",
+      "niveau": "SURACHAT"
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2026-01-09",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": 80.70281306075933,
+      "description": "RSI en SURACHAT: 80.7",
+      "niveau": "SURACHAT"
+    },
     {
       "symbol": "MSFT",
       "date": "2026-01-08",
@@ -91,36 +119,6 @@
       "description": "Cassure BAISSE de la MM50",
       "prix": 432.9599914550781,
       "MA_50": 444.94560180664064
-    },
-    {
-      "symbol": "TSLA",
-      "date": "2026-01-05",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure HAUSSE de la MM50",
-      "prix": 451.6700134277344,
-      "MA_50": 445.2660021972656
-    },
-    {
-      "symbol": "AMZN",
-      "date": "2026-01-05",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 20,
-      "description": "Cassure HAUSSE de la MM20",
-      "prix": 233.05999755859375,
-      "MA_20": 228.67600021362304
-    },
-    {
-      "symbol": "AMZN",
-      "date": "2026-01-05",
-      "type": "CASSURE_TENDANCE",
-      "severite": "MOYENNE",
-      "valeur": 50,
-      "description": "Cassure HAUSSE de la MM50",
-      "prix": 233.05999755859375,
-      "MA_50": 231.82840057373048
     }
   ]
 }
