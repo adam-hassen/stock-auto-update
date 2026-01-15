@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-PIPELINE COMPLETE - Version simplifiee
-Stockage des donnees uniquement dans le repo principal
-"""
-
 import os
 import pandas as pd
 import numpy as np
