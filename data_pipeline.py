@@ -176,14 +176,22 @@ def collect_and_save_all_versions():
     
     if all_anomalies:
         df_all_anomalies = pd.DataFrame(all_anomalies)
+        
+        # CORRECTION ICI : Convertir la colonne date en datetime pour le tri
+        df_all_anomalies['date_datetime'] = pd.to_datetime(df_all_anomalies['date'])
+        
         df_all_anomalies.to_csv(f"{DATA_FOLDER}/ALL_ANOMALIES.csv", index=False)
+        
+        # CORRECTION ICI : Trier avec la colonne datetime
+        derniers_anomalies = df_all_anomalies.sort_values('date_datetime', ascending=False).head(10)
+        derniers_anomalies = derniers_anomalies.drop('date_datetime', axis=1)
         
         report = {
             'date_analyse': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'total_anomalies': len(all_anomalies),
             'par_type': df_all_anomalies['type'].value_counts().to_dict(),
             'par_action': df_all_anomalies['symbol'].value_counts().to_dict(),
-            'dernieres_anomalies': df_all_anomalies.nlargest(10, 'date').to_dict('records')
+            'dernieres_anomalies': derniers_anomalies.to_dict('records')
         }
         
         with open(f"{DATA_FOLDER}/anomalies_report.json", "w") as f:
