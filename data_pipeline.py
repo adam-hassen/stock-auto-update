@@ -15,9 +15,9 @@ os.makedirs(DATA_FOLDER, exist_ok=True)
 
 SYMBOLS = ["AAPL", "TSLA", "MSFT", "BTC-USD", "GOOGL", "NVDA", "AMZN", "META"]
 
-# ====================== FONCTIONS  ======================
+# ====================== FONCTIONS OPTIMISÉES ======================
 def calculate_rsi_simple(prices, period=14):
-            """RSI"""
+    """RSI rapide et efficace"""
     delta = prices.diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
     loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
@@ -25,7 +25,7 @@ def calculate_rsi_simple(prices, period=14):
     return 100 - (100 / (1 + rs))
 
 def clean_data_fast(df, symbol):
-              """Nettoyage"""
+    """Nettoyage ultra-rapide"""
     df = df[['date', 'Open', 'High', 'Low', 'Close', 'Volume']].copy()
     df['symbol'] = symbol
     
@@ -36,7 +36,7 @@ def clean_data_fast(df, symbol):
     return df
 
 def add_features(df):
-    """Ajoute les features ESSENTIELLES """
+    """Ajoute les features ESSENTIELLES seulement"""
     df['daily_return'] = df['Close'].pct_change()
     df['volatility_10d'] = df['daily_return'].rolling(10).std()
     
