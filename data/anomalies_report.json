@@ -1,33 +1,57 @@
 {
-  "date_analyse": "2026-01-15 10:08:26",
-  "total_anomalies": 321,
+  "date_analyse": "2026-01-15 20:22:24",
+  "total_anomalies": 324,
   "par_type": {
-    "RSI_EXTREME": 246,
+    "RSI_EXTREME": 249,
     "VOLUME_ANORMAL": 47,
     "MOUVEMENT_EXTREME": 28
   },
   "par_action": {
     "BTC-USD": 56,
-    "GOOGL": 46,
+    "GOOGL": 47,
     "NVDA": 41,
     "META": 41,
     "MSFT": 40,
+    "AAPL": 37,
     "TSLA": 36,
-    "AAPL": 36,
-    "AMZN": 25
+    "AMZN": 26
   },
   "dernieres_anomalies": [
     {
-      "symbol": "AAPL",
-      "date": "2026-01-09",
+      "symbol": "GOOGL",
+      "date": "2026-01-12",
       "type": "RSI_EXTREME",
       "severite": "MOYENNE",
       "valeur": NaN,
       "prix": NaN,
       "volume": NaN,
       "ratio": NaN,
-      "rsi": 21.935218366108955,
+      "rsi": 88.0233579659966,
+      "niveau": "SURACHAT"
+    },
+    {
+      "symbol": "AAPL",
+      "date": "2026-01-12",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": NaN,
+      "prix": NaN,
+      "volume": NaN,
+      "ratio": NaN,
+      "rsi": 19.82913465457125,
       "niveau": "SURVENDE"
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2026-01-12",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": NaN,
+      "prix": NaN,
+      "volume": NaN,
+      "ratio": NaN,
+      "rsi": 78.20058784607976,
+      "niveau": "SURACHAT"
     },
     {
       "symbol": "AMZN",
@@ -54,28 +78,16 @@
       "niveau": "SURACHAT"
     },
     {
-      "symbol": "AMZN",
-      "date": "2026-01-08",
+      "symbol": "AAPL",
+      "date": "2026-01-09",
       "type": "RSI_EXTREME",
       "severite": "MOYENNE",
       "valeur": NaN,
       "prix": NaN,
       "volume": NaN,
       "ratio": NaN,
-      "rsi": 82.93839110088322,
-      "niveau": "SURACHAT"
-    },
-    {
-      "symbol": "GOOGL",
-      "date": "2026-01-08",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": NaN,
-      "prix": NaN,
-      "volume": NaN,
-      "ratio": NaN,
-      "rsi": 89.34243453148868,
-      "niveau": "SURACHAT"
+      "rsi": 21.935218366108955,
+      "niveau": "SURVENDE"
     },
     {
       "symbol": "AAPL",
@@ -90,16 +102,28 @@
       "niveau": "SURVENDE"
     },
     {
-      "symbol": "AAPL",
-      "date": "2026-01-07",
+      "symbol": "GOOGL",
+      "date": "2026-01-08",
       "type": "RSI_EXTREME",
       "severite": "MOYENNE",
       "valeur": NaN,
       "prix": NaN,
       "volume": NaN,
       "ratio": NaN,
-      "rsi": 20.665642729523867,
-      "niveau": "SURVENDE"
+      "rsi": 89.34243453148868,
+      "niveau": "SURACHAT"
+    },
+    {
+      "symbol": "AMZN",
+      "date": "2026-01-08",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": NaN,
+      "prix": NaN,
+      "volume": NaN,
+      "ratio": NaN,
+      "rsi": 82.93839110088322,
+      "niveau": "SURACHAT"
     },
     {
       "symbol": "AMZN",
@@ -112,30 +136,6 @@
       "ratio": NaN,
       "rsi": 77.50436028789386,
       "niveau": "SURACHAT"
-    },
-    {
-      "symbol": "BTC-USD",
-      "date": "2026-01-06",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": NaN,
-      "prix": NaN,
-      "volume": NaN,
-      "ratio": NaN,
-      "rsi": 79.74714755295298,
-      "niveau": "SURACHAT"
-    },
-    {
-      "symbol": "AAPL",
-      "date": "2026-01-06",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": NaN,
-      "prix": NaN,
-      "volume": NaN,
-      "ratio": NaN,
-      "rsi": 24.243818901851654,
-      "niveau": "SURVENDE"
     }
   ]
 }
