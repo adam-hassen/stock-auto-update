@@ -1,13 +1,13 @@
 {
-  "date_analyse": "2026-01-16 20:20:07",
-  "total_anomalies": 326,
+  "date_analyse": "2026-01-19 20:21:20",
+  "total_anomalies": 327,
   "par_type": {
-    "RSI_EXTREME": 250,
+    "RSI_EXTREME": 251,
     "VOLUME_ANORMAL": 47,
     "MOUVEMENT_EXTREME": 29
   },
   "par_action": {
-    "BTC-USD": 56,
+    "BTC-USD": 57,
     "GOOGL": 49,
     "NVDA": 41,
     "META": 41,
@@ -17,6 +17,18 @@
     "AMZN": 26
   },
   "dernieres_anomalies": [
+    {
+      "symbol": "BTC-USD",
+      "date": "2026-01-14",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": NaN,
+      "prix": NaN,
+      "volume": NaN,
+      "ratio": NaN,
+      "rsi": 78.69949009318461,
+      "niveau": "SURACHAT"
+    },
     {
       "symbol": "GOOGL",
       "date": "2026-01-13",
@@ -28,6 +40,18 @@
       "ratio": NaN,
       "rsi": 88.54868703565622,
       "niveau": "SURACHAT"
+    },
+    {
+      "symbol": "AAPL",
+      "date": "2026-01-12",
+      "type": "RSI_EXTREME",
+      "severite": "MOYENNE",
+      "valeur": NaN,
+      "prix": NaN,
+      "volume": NaN,
+      "ratio": NaN,
+      "rsi": 19.82913465457125,
+      "niveau": "SURVENDE"
     },
     {
       "symbol": "AMZN",
@@ -52,18 +76,6 @@
       "ratio": NaN,
       "rsi": 88.0233579659966,
       "niveau": "SURACHAT"
-    },
-    {
-      "symbol": "AAPL",
-      "date": "2026-01-12",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": NaN,
-      "prix": NaN,
-      "volume": NaN,
-      "ratio": NaN,
-      "rsi": 19.82913465457125,
-      "niveau": "SURVENDE"
     },
     {
       "symbol": "GOOGL",
@@ -100,18 +112,6 @@
       "ratio": NaN,
       "rsi": 21.935218366108955,
       "niveau": "SURVENDE"
-    },
-    {
-      "symbol": "GOOGL",
-      "date": "2026-01-08",
-      "type": "RSI_EXTREME",
-      "severite": "MOYENNE",
-      "valeur": NaN,
-      "prix": NaN,
-      "volume": NaN,
-      "ratio": NaN,
-      "rsi": 89.34243453148868,
-      "niveau": "SURACHAT"
     },
     {
       "symbol": "AMZN",
