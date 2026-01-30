@@ -1,19 +1,19 @@
 {
-  "date_analyse": "2026-01-29 20:26:53",
+  "date_analyse": "2026-01-30 20:25:59",
   "total_anomalies": 318,
   "par_type": {
     "RSI_EXTREME": 259,
-    "VOLUME_ANORMAL": 39,
-    "MOUVEMENT_EXTREME": 20
+    "VOLUME_ANORMAL": 40,
+    "MOUVEMENT_EXTREME": 19
   },
   "par_action": {
     "BTC-USD": 56,
     "GOOGL": 50,
-    "AAPL": 42,
+    "AAPL": 43,
     "MSFT": 39,
-    "META": 38,
-    "NVDA": 36,
-    "TSLA": 34,
+    "NVDA": 37,
+    "META": 37,
+    "TSLA": 33,
     "AMZN": 23
   },
   "dernieres_anomalies": [
