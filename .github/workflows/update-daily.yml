@@ -9,15 +9,17 @@ permissions:
   contents: write
 
 jobs:
-  collect-and-analyze:
+  collect-and-publish:
     runs-on: ubuntu-latest
 
     steps:
+      # ===================== CHECKOUT =====================
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.PUSH_TOKEN }}
 
+      # ===================== PYTHON =====================
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -26,50 +28,43 @@ jobs:
       - name: Install dependencies
         run: |
           pip install yfinance pandas numpy scipy requests
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-          pip install transformers
+          pip install huggingface_hub
 
+      # ===================== GIT CONFIG =====================
       - name: Configure Git
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
 
+      # ===================== COLLECTE =====================
       - name: Run Financial Data Collection
         run: python data_pipeline.py
 
-      - name: Run Sentiment Analysis
-        env:
-          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-          GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
-        run: python sentiment_analysis.py
-
-      - name: Commit and Push to personal repository
+      # ===================== PUSH REPO PERSO =====================
+      - name: Commit and push to personal repository
         run: |
-          echo "Commit vers repo perso"
-
           git add data/ || true
 
           if git diff --cached --quiet; then
             echo "Aucun changement a commit"
           else
-            git commit -m "Daily update $(date +'%Y-%m-%d %H:%M')"
+            git commit -m "Daily financial data update $(date +'%Y-%m-%d %H:%M')"
             git push origin HEAD:main
           fi
 
-      - name: Push financial data to project repository
+      # ===================== PUSH REPO PROJET =====================
+      - name: Push data to project repository
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
         run: |
-          echo "CLONAGE DU REPO PROJET"
+          echo "Clonage du repo projet"
 
           git clone https://x-access-token:${PUSH_TOKEN}@github.com/Gasthorn/Projet4A_PredictionsBoursieres.git project_repo
-
           cd project_repo
           git checkout Collecte-Des-Données
 
-          echo "COPIE DES DONNEES FINANCIERES"
           mkdir -p data
-          cp -r ../data/* data/
+          cp -r ../data/*.csv data/
 
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
@@ -77,8 +72,35 @@ jobs:
           git add data/ || true
 
           if git diff --cached --quiet; then
-            echo "Aucun changement a pousser vers le repo projet"
+            echo "Aucun changement a pousser vers repo projet"
           else
             git commit -m "MAJ donnees financieres $(date +'%Y-%m-%d %H:%M')"
             git push origin Collecte-Des-Données
           fi
+
+      # ===================== PUSH HUGGING FACE DATASET =====================
+      - name: Upload dataset to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<EOF
+          from huggingface_hub import login, HfApi
+          import os
+
+          login(token=os.environ["HF_TOKEN"])
+
+          api = HfApi()
+          repo_id = "adam5858/stock-market-data"
+          repo_type = "dataset"
+
+          for file in os.listdir("data"):
+              if file.endswith(".csv"):
+                  api.upload_file(
+                      path_or_fileobj=f"data/{file}",
+                      path_in_repo=file,
+                      repo_id=repo_id,
+                      repo_type=repo_type
+                  )
+
+          print("Dataset Hugging Face mis à jour")
+          EOF
