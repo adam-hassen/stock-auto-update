@@ -2,8 +2,8 @@ name: Stock Analysis Daily
 
 on:
   schedule:
-    - cron: '0 20 * * 1-5'  # Lundi à Vendredi à 20h (heure française)
-  workflow_dispatch:  # Permet de lancer manuellement
+    - cron: '0 20 * * 1-5'   # Lundi à Vendredi à 20h (heure FR)
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,55 +11,74 @@ permissions:
 jobs:
   collect-and-analyze:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.PUSH_TOKEN }}
-    
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12'
-    
-    - name: Install dependencies
-      run: |
-        pip install yfinance pandas numpy scipy requests
-        pip install torch --index-url https://download.pytorch.org/whl/cpu
-        pip install transformers
-    
-    - name: Configure Git
-      run: |
-        git config user.email "actions@github.com"
-        git config user.name "GitHub Actions"
-        git remote set-url origin https://x-access-token:${{ secrets.PUSH_TOKEN }}@github.com/${{ github.repository }}.git
-    
-    - name: Run Financial Data Collection
-      run: python data_pipeline.py
-    
-    - name: Run Sentiment Analysis
-      env:
-        NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
-        GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
-        PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
-      run: python sentiment_analysis.py
-    
-    - name: Commit and Push Results
-      env:
-        PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
-      run: |
-        # Vérifier les fichiers générés
-        echo "Fichiers générés :"
-        ls -la data/ 2>/dev/null || echo "Dossier data/ non trouvé"
-        
-        # Ajouter tous les nouveaux fichiers
-        git add data/ 2>/dev/null || echo "Pas de fichiers à ajouter"
-        
-        # Vérifier s'il y a des changements
-        if git diff --cached --quiet; then
-          echo "Aucun changement à commiter"
-        else
-          git commit -m "Daily update $(date +'%Y-%m-%d %H:%M')"
-          git push origin HEAD:main
-        fi
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PUSH_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install yfinance pandas numpy scipy requests
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install transformers
+
+      - name: Configure Git
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+
+      - name: Run Financial Data Collection
+        run: python data_pipeline.py
+
+      - name: Run Sentiment Analysis
+        env:
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
+        run: python sentiment_analysis.py
+
+      - name: Commit and Push to personal repository
+        run: |
+          echo "Commit vers repo perso"
+
+          git add data/ || true
+
+          if git diff --cached --quiet; then
+            echo "Aucun changement a commit"
+          else
+            git commit -m "Daily update $(date +'%Y-%m-%d %H:%M')"
+            git push origin HEAD:main
+          fi
+
+      - name: Push financial data to project repository
+        env:
+          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
+        run: |
+          echo "CLONAGE DU REPO PROJET"
+
+          git clone https://x-access-token:${PUSH_TOKEN}@github.com/Gasthorn/Projet4A_PredictionsBoursieres.git project_repo
+
+          cd project_repo
+          git checkout Collecte-Des-Données
+
+          echo "COPIE DES DONNEES FINANCIERES"
+          mkdir -p data
+          cp -r ../data/* data/
+
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+
+          git add data/ || true
+
+          if git diff --cached --quiet; then
+            echo "Aucun changement a pousser vers le repo projet"
+          else
+            git commit -m "MAJ donnees financieres $(date +'%Y-%m-%d %H:%M')"
+            git push origin Collecte-Des-Données
+          fi
