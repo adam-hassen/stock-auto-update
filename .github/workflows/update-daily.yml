@@ -29,6 +29,7 @@ jobs:
         run: |
           pip install yfinance pandas numpy scipy
           pip install huggingface_hub
+          pip install transformers torch requests
 
       # ===================== GIT CONFIG =====================
       - name: Configure Git
@@ -36,9 +37,16 @@ jobs:
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
 
-      # ===================== COLLECTE =====================
+      # ===================== COLLECTE FINANCIERE =====================
       - name: Run Financial Data Collection
         run: python data_pipeline.py
+
+      # ===================== COLLECTE SENTIMENT =====================
+      - name: Run Sentiment Analysis
+        env:
+          NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+          GNEWS_API_KEY: ${{ secrets.GNEWS_API_KEY }}
+        run: python sentiment_analysis.py
 
       # ===================== PUSH REPO PERSO =====================
       - name: Commit and push to personal repository
@@ -59,13 +67,10 @@ jobs:
           git clone https://x-access-token:${PUSH_TOKEN}@github.com/Gasthorn/Projet4A_PredictionsBoursieres.git project_repo
           cd project_repo
           git checkout Collecte-Des-Données
-
           mkdir -p data
           cp -r ../data/*.csv data/
-
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-
           git add data/ || true
           if git diff --cached --quiet; then
             echo "Aucun changement repo projet"
@@ -82,15 +87,12 @@ jobs:
           python - <<EOF
           from huggingface_hub import login, HfApi
           import os
-
           login(token=os.environ["HF_TOKEN"])
           api = HfApi()
-
           datasets = [
               "adam5858/stock-market-data",
               "Projet4AIABoursiere/stock-market-data"
           ]
-
           for repo_id in datasets:
               for file in os.listdir("data"):
                   if file.endswith(".csv"):
@@ -100,6 +102,16 @@ jobs:
                           repo_id=repo_id,
                           repo_type="dataset"
                       )
+                  # Upload aussi articles_sentiment si dossier existe
+                  sentiment_dir = "data/articles_sentiment"
+                  if os.path.exists(sentiment_dir):
+                      for sfile in os.listdir(sentiment_dir):
+                          if sfile.endswith(".csv"):
+                              api.upload_file(
+                                  path_or_fileobj=f"{sentiment_dir}/{sfile}",
+                                  path_in_repo=f"articles_sentiment/{sfile}",
+                                  repo_id=repo_id,
+                                  repo_type="dataset"
+                              )
               print(f"Dataset mis a jour : {repo_id}")
-
           EOF
